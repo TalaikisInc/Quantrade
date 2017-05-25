@@ -4,6 +4,9 @@ Cython
 pandas
 psycopg2
 scipy
+uvloop
+sanic
+clint
 scikit-learn
 matplotlib
 mysqlclient

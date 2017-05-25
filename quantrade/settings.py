@@ -299,15 +299,17 @@ DATABASES = {
     },
 }
 
-MYSQL_USERNAME = environ.get("QT_MYSQL_USERNAME")
 MYSQL_DATABASE = DATABASE_NAME
 
 if DEV_ENV:
+    MYSQL_USERNAME = environ.get("QT_DEV_MYSQL_USERNAME")
     MYSQL_PASSWORD = environ.get("QT_DEV_MYSQL_PASSWORD")
+    MYSQL_HOST = environ.get("QT_DEV_MYSQL_HOST")
 else:
+    MYSQL_USERNAME = environ.get("QT_MYSQL_USERNAME")
     MYSQL_PASSWORD = environ.get("QT_MYSQL_PASSWORD")
+    MYSQL_HOST = environ.get("QT_MYSQL_HOST")
 
-MYSQL_HOST = environ.get("QT_MYSQL_HOST")
 MYSQL_PORT = int(environ.get("QT_MYSQL_PORT"))
 DEBUG = DEV_ENV
 SHOW_DEBUG = int(environ.get("QT_SHOW_DEBUG"))

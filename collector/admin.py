@@ -11,7 +11,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from collector.models import (QtraUser, Portfolios, Symbols, Brokers, Periods,
     Stats, Contacts, Signals, Indicators, Systems, PortfolioData, PortfolioStrats,
-    Post, Corr, GARCH)
+    Post, Corr, GARCH, Strategy, Indicator)
 
 
 class FlatPageCustom(FlatPageAdmin):
@@ -57,6 +57,8 @@ admin.site.register(Periods)
 admin.site.register(Stats, StatsAdmin)
 admin.site.register(Contacts)
 admin.site.register(Post)
+admin.site.register(Indicator)
+admin.site.register(Strategy)
 admin.site.register(GARCH, GARCHAdmin)
 admin.site.register(Signals, SignalsAdmin)
 admin.site.register(Indicators)

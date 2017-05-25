@@ -118,6 +118,30 @@ class Post(models.Model):
         return '%s' %(self.title)
 
 
+class Indicator(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    title = models.CharField(max_length=15, verbose_name=T("Indicator title"), unique=True)
+    content = models.TextField(verbose_name=T("Indicator code"))
+
+    def __unicode__(self):
+        return '%s' %(self.title)
+
+    def __str__(self):
+        return '%s' %(self.title)
+
+
+class Strategy(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    title = models.CharField(max_length=15, verbose_name=T("Strategy title"), unique=True)
+    content = models.TextField(verbose_name=T("Strategy code"))
+
+    def __unicode__(self):
+        return '%s' %(self.title)
+
+    def __str__(self):
+        return '%s' %(self.title)
+
+
 class Contacts(models.Model):
     id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=120, verbose_name=T("Name"))

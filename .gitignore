@@ -10,6 +10,7 @@ __pycache__/
 *.jpg
 *.png
 *.jpeg
+*.svg
 
 #data
 *.csv
@@ -37,9 +38,7 @@ lib64/
 parts/
 sdist/
 var/
-uploads/
 <<<<<<< HEAD
-static/
 =======
 >>>>>>> be9a5c610d84fff55b03e0df46eb28d8fdf9cbad
 *.egg-info/

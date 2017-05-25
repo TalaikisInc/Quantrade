@@ -34,7 +34,7 @@ Open source repo doesn't include actual strategies.
 
 ## How to create strategies
 
-It uses pandas, so it's pretty straightforward for simple strategies. First you need some indicator. Both indicator and strategy should be defined in utils.py and programmed inside collector/arctic_utils.py (IndicatorBase and SignalBase classes). Indicator example:
+It uses pandas, so it's pretty straightforward vectorized testing for simple strategies. First you need some indicator. Both indicator and strategy should be defined in utils.py and programmed inside collector/arctic_utils.py (IndicatorBase and SignalBase classes). Indicator example:
 
 ```text
 # "SMA" is an indicator name defined inside utils.py
