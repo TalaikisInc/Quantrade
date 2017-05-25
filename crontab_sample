@@ -1,0 +1,15 @@
+#try catch each market close, a.k.a hourly
+5 11 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 16 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 18 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 19 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 21 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 22 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 23 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+5 1 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --hourly=True
+
+# quantrade daily
+0 15 * * 0-6 /root/anaconda3/bin/python /home/quantrade/utils.py --daily=True
+
+# quantrade monthly
+0 1 2 *  * /root/anaconda/bin/python /home/quantrade/utils.py --monthly=True

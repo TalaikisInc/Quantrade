@@ -1,10 +1,10 @@
 # Quantrade
 
-Quantrade (quantrade.co.uk) is quantitative strategies portfolio index, generating trade signals from its portfolio.
+[Quantrade](https://quantrade.co.uk) is quantitative strategies portfolio index, generating trade signals from its portfolio.
 
 ## What it does
 
-It uses data server, running Metatrader 4 platforms and processing server that gets the data via WebDAV, processes it and then displays generated content. It would query when configured data server periodically generating trade signals automatically from created strategies.
+It uses data server, running Metatrader 4 platforms and processing server that gets the data via WebDAV, processes it and then displays generated content. It would query, when configured, data server periodically to generate trade signals automatically from created strategies.
 
 ## STATUS
 
@@ -13,6 +13,7 @@ after deciding how it will or should look when operable.
 
 ## TODO
 
+* ~~API~~
 * In/out sample.
 * Monte Carlo.
 * ~~Mobile app.~~ (dropped?)
@@ -25,6 +26,7 @@ after deciding how it will or should look when operable.
 * Two included brokers ([Ava trade](http://www.avatrade.com/?tag=1997) and [Pepperstone](https://pepperstone.com/?a_aid=quantrade)) with 25 strategies generate over 200,000 files, over 100 Gb of data, so it is resources hungry project.
 * As Metatrader 4 is visual, it probably needs Windows server.
 * It needs both MySQL (receiving symbol data from MT4) and Postgres (everything else) servers.
+* Python 3.6+, Nginx, Redis, aio or cherry or uWsgi (original).
 
 ## Differences between open source and actual
 
@@ -65,6 +67,11 @@ if 'SM' in self.name:
     df = await self.clean_df(df=df)
     await self.insert(df.dropna())
 ```
+
+## Special features
+
+* It implements some concept of "automarketing", when results for each trade and month are sent to social networks, RSS, email.
+* As always, Nginx SSL config with A level security, big names don't do that.
 
 ## History
 

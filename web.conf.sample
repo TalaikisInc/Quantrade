@@ -1,0 +1,7 @@
+description "Aiohttp"
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec start-stop-daemon --start --make-pidfile --pidfile /var/run/aio.pid --exec /bin/bash /home/quantrade/web.sh >> /home/quantrade/logs/aio_daemon.log 2>&1

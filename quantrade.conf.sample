@@ -1,0 +1,106 @@
+upstream apps {
+    server 127.0.0.1:8000 fail_timeout=0;
+}
+
+server {
+    listen          443 ssl;
+    listen [::]:443; # ipv6only=on;
+    server_name     <domain>;
+    ssl on;
+    charset     utf-8;
+    #access_log      /var/log/nginx/<domain>_access.log combined;
+    error_log       /var/log/nginx/<domain>_error.log error;
+
+    ssl_certificate         /etc/letsencrypt/live/<domain>/fullchain.pem;
+    ssl_certificate_key     /etc/letsencrypt/live/<domain>/privkey.pem;
+
+    ssl_session_timeout 1d;
+    ssl_session_cache shared:SSL:50m;
+    ssl_dhparam /etc/ssl/certs/dhparam.pem;
+    ssl_protocols TLSv1 TLSv1.1 TLSv1.2;
+    ssl_ciphers 'ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES128-GCM-SHA256:DHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-AES128-SHA256:ECDHE-RSA-AES128-SHA256:ECDHE-ECDSA-AES128-SHA:ECDHE-RSA-AES256-SHA384:ECDHE-RSA-AES128-SHA:ECDHE-ECDSA-AES256-SHA384:ECDHE-ECDSA-AES256-SHA:ECDHE-RSA-AES256-SHA:DHE-RSA-AES128-SHA256:DHE-RSA-AES128-SHA:DHE-RSA-AES256-SHA256:DHE-RSA-AES256-SHA:ECDHE-ECDSA-DES-CBC3-SHA:ECDHE-RSA-DES-CBC3-SHA:EDH-RSA-DES-CBC3-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA256:AES256-SHA256:AES128-SHA:AES256-SHA:DES-CBC3-SHA:!DSS';
+    ssl_prefer_server_ciphers on;
+    add_header Strict-Transport-Security max-age=15768000;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+
+    location / {
+        #uwsgi_pass  qtrade2;
+        proxy_pass http://apps;
+
+        include     /etc/nginx/uwsgi_params; # the uwsgi_params file you installed
+        proxy_redirect     off;
+
+        #proxy_cache m_zone;
+        proxy_cache_bypass  $http_cache_control;
+        add_header X-Proxy-Cache $upstream_cache_status;
+
+        proxy_set_header   Host              $http_host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header        X-Forwarded-Proto https;
+    }
+
+    location ^~ /.well-known {
+        allow all;
+        auth_basic off;
+        alias /home/<folder>/.well-known/;
+    }
+
+    # Django media
+    location /uploads/  {
+	autoindex on;
+        expires 300d;
+	include /etc/nginx/mime.types;
+        alias /home/<folder>/uploads/;  # your Django project's media files - amend as required
+        add_header Cache-Control "public";
+    }
+
+    location /static/ {
+	autoindex on;
+        expires 300d;
+	      include /etc/nginx/mime.types;
+        alias /home/<folder>/static/; # your Django project's static files - amend as required
+        add_header Cache-Control "public";
+    }
+
+    #location /flower/ {
+        #rewrite ^/flower/(.*)$ /$1 break;
+        #proxy_pass http://localhost:5555;
+        #proxy_set_header Host $host;
+        #auth_basic "Restricted";
+        #auth_basic_user_file /etc/nginx/.htpasswd;
+    #}
+
+    location /favicon.ico {
+        alias /home/<folder>/uploads/web/favicon.ico;
+    }
+
+    location /robots.txt {
+        alias /home/<folder>/static/robots.txt;
+    }
+
+    #location ~* .(woff|eot|ttf|svg|mp4|webm|jpg|jpeg|png|gif|ico|css|js)$ {
+        #expires 365d;
+    #}
+
+}
+
+server {
+    listen 80;
+    server_name <domain>;
+    rewrite ^(.*) https://<domain>$1 permanent;
+}
+
+server {
+    listen 80;
+    server_name www.<domain>;
+    rewrite ^(.*) https://<domain>$1 permanent;
+}
+
+server {
+    listen 443;
+    server_name www.<domain>;
+    #rewrite ^(.*) https://<domain>$1 permanent;
+    rewrite ^ https://<domain>$uri permanent;
+}
