@@ -1,0 +1,11 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load cache %}
+
+{% cache 500000 nochange %}
+{% block title %}{% trans "Bad request 400" %}{% endblock %}
+
+{% block header %}
+  <h1">{% trans "Bad request 400" %}</h1>
+{% endblock %}
+{% endcache %}

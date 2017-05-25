@@ -1,0 +1,23 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Blog" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Blog" %}</h1>
+{% endblock %}
+
+{% block content %}
+{% for entry in posts %}
+<div class="row">
+<div class="col-lg-6">
+  <h3>{{ entry.title }}</h3>
+  <h6>{{ entry.date_time }}</h6>
+  <p>{% autoescape off %}{{ entry.content }}{% endautoescape %}</p>
+</div>
+</div>
+{% empty %}
+  Nothing here yet.
+{% endfor %}
+
+{% endblock %}

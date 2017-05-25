@@ -1,0 +1,85 @@
+{% extends "./base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Strategy stats" %}{{ system }} {{ symbol }} {{ period.name }}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Strategy stats for " %}{{ system }} {{ symbol }} {{ period.name }}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-16">
+      <div class="panel-body">
+        <div id="histogram"></div>
+        <script>
+            var data = [
+              {
+                  x: {{ histogram }},
+                  type: 'histogram',
+                  opacity: 0.3,
+                  marker: {
+                    color: 'green',
+                  },
+                }
+              ];
+              var layout = {
+                bargap: 0.05,
+                bargroupgap: 0.2,
+                barmode: "overlay",
+                title: "{% trans "Returns distribution for strategy" %} {{ system }} {{ symbol }} {{ period.name }}",
+                xaxis: {title: "{% trans "Value" %}"},
+                yaxis: {title: "Count"}
+              };
+              Plotly.newPlot('histogram', data, layout);
+        </script>
+      </div>
+    </div>
+</div>
+<div class="row">
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>{% trans "Statistic" %}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+              <th></th>
+              <th></th>
+          </tr>
+          <tr>
+              <th>{% trans "Fitness ratio" %}</th>
+              <td>{{ stats.fitness }}</td>
+          </tr>
+            <tr>
+                <th>{% trans "Sharpe ratio" %}</th>
+                <td>{{ stats.sharpe }}</td>
+            </tr>
+            <tr>
+                <th>{% trans "Average trade" %}</th>
+                <td>{{ stats.avg_trade }}</td>
+            </tr>
+            <tr>
+                <th>{% trans "Average win" %}</th>
+                <td>{{ stats.avg_win }}</td>
+            </tr>
+            <tr>
+                <th>{% trans "Average loss" %}</th>
+                <td>{{ stats.avg_loss }}</td>
+            </tr>
+            <tr>
+                <th>{% trans "Win rate" %}</th>
+                <td>{{ stats.win_rate }}</td>
+            </tr>
+            <tr>
+                <th>{% trans "Trades" %}</th>
+                <td>{{ stats.trades }}</td>
+            </tr>
+        </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

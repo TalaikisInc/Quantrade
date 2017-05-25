@@ -1,0 +1,15 @@
+django
+numpy
+Cython
+pandas
+psycopg2
+scipy
+scikit-learn
+matplotlib
+mysqlclient
+python-dotenv
+django-rosetta
+django-ckeditor
+django-oauth-toolkit
+python-social-auth==0.2.21
+social-auth-app-django

@@ -1,0 +1,156 @@
+{% load i18n %}
+{% load static %}
+{% spaceless %}
+<!DOCTYPE html>
+<html lang='en'>
+
+<head>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="author" content="Quantrade Ltd.">
+
+    <title>{% block title %}{% endblock %} | {{ sitename }}</title>
+
+    {% if not dev %}<meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">{% endif %}
+
+    <link rel='dns-prefetch' href='//maxcdn.bootstrapcdn.com'/>
+    <link rel='dns-prefetch' href='//cdn.plot.ly'/>
+    <link rel='dns-prefetch' href='//ajax.googleapis.com'/>
+    <link rel='dns-prefetch' href='//www.google-analytics.com'/>
+
+    {% if dev %}
+    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css"/>
+    {% else %}
+    <link href="{% static "collector/vendor/bootstrap/css/bootstrap.min.css" %}" rel="stylesheet">
+    {% endif %}
+    <link href="{% static "collector/dist/css/sb-admin-2.css" %}" rel="stylesheet">
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" %}" rel="stylesheet" type="text/css">
+    {% block meta %}{% endblock %}
+    <script src="//cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+
+  <div id="wrapper">
+        <nav class="navbar navbar-default navbar-static-top" role="navigation" style="margin-bottom: 0">
+          <div class="navbar-header">
+            <div class="textcenter">
+              <a class="navbar-brand" href="{{ base_url }}"><a href="{{ base_url }}"><img src="{% static "collector/images/quantrade.png" %}" title="{{ sitename }}" /></a>
+            </div>
+          </div>
+          <ul class="nav navbar-top-links navbar-right">
+            <li><a href="https://qprob.com/"><i class="fa fa-file-o"></i> Quant news</a></li>
+            <li><a href="https://stckmrktnws.com/"><i class="fa fa-file-o"></i> Stock market news</a></li>
+            <li><a href="https://www.facebook.com/quantrade/"><i class="fa fa-facebook"></i></a></li>
+            <li><a href="https://www.linkedin.com/company/17904411/"><i class="fa fa-linkedin"></i></a></li>
+            <li><a href="https://twitter.com/QuantradeLtd"><i class="fa fa-twitter"></i></a></li>
+            <li><a href="https://quantrade.co.uk/feed/"><i class="fa fa-rss"></i></a></li>
+          </ul>
+
+            <div class="navbar-default sidebar" role="navigation">
+                <div class="sidebar-nav navbar-collapse">
+                    <ul class="nav" id="side-menu">
+                        <li></li>
+                        <!-- <li><a href="{{ base_url }}"><i class="fa fa-bar-chart-o fa-fw"></i> {% trans "Home" %}</a></li> -->
+                        <li><a href="{{ base_url }}/how_it_works/"><i class="fa fa-refresh fa-spin fa-fw"></i> {% trans "How it works" %}</a></li>
+                        <li><a href="{{ base_url }}/brokers/"><i class="fa fa-institution fa-fw"></i> {% trans "Brokers" %}</a></li>
+                          {% if user and not user.is_anonymous %}
+                            <li><a href="#"><i class="fa fa-user fa-fw"></i> {{ user.get_full_name|default:user.username }}<span class="fa arrow"></span></a>
+                              <ul class="nav nav-second-level">
+                                <li><a href="{{ base_url }}/{{ members_area_nae }}/"><i class="fa fa-cog fa-fw"></i> {% trans "Quantrade account" %}</a></li>
+                                <li><a href="{{ base_url }}/broker/"><i class="fa fa-connectdevelop fa-fw"></i> {% trans "Broker account" %}</a></li>
+                                <li><a href="{{ base_url }}/email/"><i class="fa fa-volume-up fa-fw"></i> {% trans "Delivery method" %}</a></li>
+                                <li><a href="{{ base_url }}/performance/"><i class="fa fa-money fa-fw"></i> {% trans "My signals" %}</a></li>
+                                <!-- <li><a href="{{ base_url }}/portfolio/"><i class="fa fa-line-chart fa-fw"></i> {% trans "My portfolio" %}</a></li> -->
+                                <li><a href="{{ base_url }}/password/"><i class="fa fa-key fa-fw"></i> {% trans "Password" %}</a></li>
+                                <li><a href="{{ base_url }}/logout/"><i class="fa fa-sign-out fa-fw"></i> {% trans "Logout" %}</a></li>
+                              </ul>
+                          {% else %}
+                            <li><a href="#"><i class="fa fa-user fa-fw"></i> {% trans "Account " %}<span class="fa arrow"></span></a>
+                              <ul class="nav nav-second-level">
+                                <li><a href="{% url 'social:begin' 'google-oauth2' %}"><i class="fa fa-google fa-fw"></i> {% trans "Login/Signup <br />with Google" %}</a></li>
+                                <li><a href="{% url 'social:begin' 'facebook' %}"><i class="fa fa-facebook-official fa-fw"></i> {% trans "Login/Signup <br />with Facebook" %}</a></li>
+                                <li><a href="{% url 'social:begin' 'twitter' %}"><i class="fa fa-twitter fa-fw"></i> {% trans "Login/Signup <br />with Twitter" %}</a></li>
+                                <li><a href="{% url 'social:begin' 'linkedin-oauth2' %}"><i class="fa fa-linkedin fa-fw"></i> {% trans "Login/Signup <br />with Linkedin" %}</a></li>
+                              </ul>
+                          {% endif %}
+                        </li>
+                        <li><a href="{{ base_url }}/blog/"><i class="fa fa-newspaper-o fa-fw"></i> {% trans "Blog & news" %}</a></li>
+                        <li><a href="{{ base_url }}/auto_portfolio/"><i class="fa fa-magic fa-fw"></i> {% trans "Autoportfolio" %}</a></li>
+                        <li><a href="{{ base_url }}/trading_advice/"><i class="fa fa-key fa-fw"></i> {% trans "Win trading" %}</a></li>
+                        <!-- <li><a href="{{ base_url }}/garch/"><i class="fa fa-area-chart fa-fw"></i> {% trans "GARCH forecast" %}</a></li> -->
+                        <!-- <li><a href="{{ base_url }}/indicators/{% if broker_slug %}{{ broker_slug }}{% else %}{{ broker_base }}{% endif %}/"><i class="fa fa-signal fa-fw"></i> {% trans "Indicators" %}</a></li> -->
+                        <li><a href="{{ base_url }}/systems/"><i class="fa fa-superscript fa-fw"></i> {% trans "Systems" %}</a></li>
+                        <li><a href="{{ base_url }}/latest_signals/"><i class="fa fa-long-arrow-right fa-fw"></i> {% trans "Latest signals" %}</a></li>
+                        <li><a href="{{ base_url }}/api/"><i class="fa fa-anchor fa-fw"></i> {% trans "API" %}</a></li>
+                        <!-- <li><a href="{{ base_url }}/portfolios/"><i class="fa fa-star fa-fw"></i> {% trans "Portfolios" %}</a></li> -->
+                        <li><a href="{{ base_url }}/symbols/"><i class="fa fa-ioxhost fa-fw"></i> {% trans "Symbols" %}</a></li>
+                        <li><a href="{{ base_url }}/correlations/"><i class="fa fa-link fa-fw"></i> {% trans "Correlations" %}</a></li>
+                        <li><a href="{{ base_url }}/contact/"><i class="fa fa-at fa-fw"></i> {% trans "Contact us" %}</a></li>
+                        <li><a href="{{ base_url }}/about/"><i class="fa fa-info fa-fw"></i> {% trans "About" %}</a></li>
+                        <li>
+                          <!-- Begin MailChimp Signup Form -->
+<div class="form-group">
+<form action="//quantrade.us3.list-manage.com/subscribe/post?u=be6ce20d93f8797694745ed21&amp;id=cd7998ae01" method="post" id="mc-embedded-subscribe-form" name="mc-embedded-subscribe-form" class="validate" target="_blank" novalidate>
+    <div class="col-lg-1 col-offset-6 centered">
+	<label for="mce-EMAIL">{% trans "Email:" %}</label>
+	<input type="email" value="" name="EMAIL" class="required email" id="mce-EMAIL">
+	<div id="mce-responses" class="clear">
+		<div class="response" id="mce-error-response" style="display:none"></div>
+		<div class="response" id="mce-success-response" style="display:none"></div>
+	</div>
+    <div style="position: absolute; left: -5000px;" aria-hidden="true"><input type="text" name="b_be6ce20d93f8797694745ed21_cd7998ae01" tabindex="-1" value=""></div>
+    <div class="clear"><input type="submit" value="{% trans "Subscribe" %}" name="subscribe" id="mc-embedded-subscribe" class="button"></div>
+    </div>
+</form>
+</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+</div>
+    <div id="page-wrapper">
+      {% block header %}{% endblock %}
+
+      {% block content %}{% endblock %}
+    </div>
+
+
+    <div id="page-wrapper">
+      <!-- <h6>
+        {% for lang in LANGUAGES %}
+            <a href="{{ base_url }}/{{ lang.0 }}/"><img src="{% static "collector/flags/" %}{{ lang.0 }}.png" title="{{ lang.1 }}"></a>&nbsp;
+        {% endfor %}
+      </h6>
+    -->
+    <p>&nbsp;</p>
+    <hr />
+      <h6>Contracts for Difference (CFDs) are leveraged products and carry a high level of risk when prices move rapidly against your positions. Losses can exceed your deposits and you may be required to make further deposits in such a case. These products may not be suitable for all clients therefore ensure you understand the risks. Please read <a href="{{ base_url }}/risk_warning/">full risk disclosure here</a>.</h6>
+      <h6>{% trans "" %} &copy; 2017, <a href="https://quantrade.co.uk/">Quantrade Ltd.</a> | v. {{ version }} | <a href="{{ base_url }}/risk_warning/">{% trans "Risk warning" %}</a> | <a href="{{ base_url }}/privacy_policy/">{% trans "Privacy policy" %}</a> | <a href="{{ base_url }}/terms_of_service/">{% trans "Terms of service" %}</a></h6>
+    </div>
+
+    {% if dev %}
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+    <script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/js/bootstrap.min.js"></script>
+    {% else %}
+    <script src="{% static "collector/vendor/jquery/jquery.min.js" %}"></script>
+    <script src="{% static "collector/vendor/bootstrap/js/bootstrap.min.js" %}"></script>
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+      ga('create', 'UA-89083575-1', 'auto');
+      ga('send', 'pageview');
+    </script>
+    {% endif %}
+
+    {% block java %}
+    {% endblock %}
+</body>
+
+</html>
+{% endspaceless %}

@@ -1,0 +1,139 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{% trans "My portfolio" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "My portfolio" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="panel-body">
+    <div id="chart">
+      {% if graph %}
+      {{ graph|safe }}
+      {% endif %}
+    </div>
+</div>
+</div>
+<div class="panel-body">
+  <h3>Portfolio stats</h3>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>{% trans "Parameter" %}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+              <th></th>
+              <th></th>
+          </tr>
+          <tr>
+            <th colspan="2" style="text-align:center">{% trans "Main data" %}</th>
+          <tr>
+          <tr>
+            <th>{% trans "Lots" %}</th>
+            <td>{{ lots }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Max required margin" %}</th>
+            <td>{{ margin|intcomma }}</td>
+          </tr>
+          <tr>
+            <th colspan="2" style="text-align:center">{% trans "Profitability" %}</th>
+          <tr>
+          <tr>
+            <th>{% trans "Portfolio sharpe ratio" %}</th>
+            <td>{{ sharpe|floatformat:2 }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Total profit" %}</th>
+            <td>{{ total_profit|intcomma }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Average yearly" %}</th>
+            <td>{{ avg_yearly|intcomma }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Average yearly, %" %}<sup>1</sup></th>
+            <td>{{ avg_yearly_p|floatformat:2 }}{% if yearly_p %}%{% endif %}</td>
+          </tr>
+          <tr>
+            <th colspan="2" style="text-align:center">{% trans "Risks" %}</th>
+          <tr>
+          <tr>
+            <th>{% trans "Max intrabar drawdown" %}</th>
+            <td>{{ idd|intcomma }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Max trade drawdown" %}</th>
+            <td>{{ mdd|intcomma }}</td>
+          </tr>
+          <tr>
+            <th>{% trans "Abs account minimum" %}<sup>2</sup></th>
+            <td>{{ rec_dep|intcomma }}</td>
+          </tr>
+        </tbody>
+    </table>
+    {% if lots %}
+      {% blocktrans %}
+        <p><sup>1</sup> Calculating as worst case absolute account minimum tiomes 2 (i.e. free margin = 200%).</p>
+        <p><sup>2</sup> Absolute account minimum for {{ lots }} lot(s) = required margin + max drawdown + intrabar drawdown.</p>
+      {% endblocktrans %}
+    {% endif %}
+  </div>
+</div>
+
+{% if portfolios %}
+<div class="panel-body">
+  <h3>Strategies</h3>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>{% trans "Strategy" %}</th>
+                <th>{% trans "Margin" %}</th>
+                <th>{% trans "Size, in lots" %}</th>
+                <th>{% trans "Broker" %}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+              <th></th>
+              <th></th>
+          </tr>
+          {% for port in portfolios %}
+          <tr>
+              <th><a href="{{ base_url }}/{{ port.broker__slug }}/{{ port.symbol__symbol }}/{{ port.period__period }}/{{ port.system__title }}/{% if port.direction == 1 %}longs{% elif port.direction == 2 %}shorts{% else %}longs_shorts{% endif %}/">{{ port.symbol__symbol }} {{ port.period__name }} {{ port.system__title }} {% if port.direction == 1 %}{% trans "Longs" %}{% elif port.direction == 2 %}{% trans "Shorts" %}{% else %}{% trans "Longs & shorts" %}{% endif %}</a></th>
+              <td>{{ port.symbol__margin_initial|intcomma }}</td>
+              <td>{{ port.size }}</td>
+              <td>{{ port.symbol__broker__title }}</td>
+              <td><a href="{{ base_url }}/delete/{{ port.broker__slug }}/{{ port.symbol__symbol }}/{{ port.period__period }}/{{ port.system__title }}/{% if port.direction == 1 %}longs{% elif port.direction == 2 %}shorts{% else %}longs_shorts{% endif %}/"><strong>{% trans "Delete" %}</strong></a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+    </table>
+    <!--
+    {% if weighting == 2 %}<a href="{{ base_url }}/minimum_variance/"><button type="button" class="btn btn-outline btn-default">{% trans "Calculate minimum variance weights" %}</button></a>{% else %}{% trans "You're using minimum variance weighting" %}&nbsp;{% endif %}
+    {% if weighting == 1 %}<a href="{{ base_url }}/equal_weights/"><button type="button" class="btn btn-outline btn-default">{% trans "Switch to equal weights" %}</button></a>{% else %}{% trans "You're using equal weighting" %}&nbsp;{% endif %}
+  -->
+  </div>
+</div>
+    {% if correl %}
+    <div class="panel-body">
+      <h3>Strategy correlations</h3>
+      <div class="table-responsive">
+          {{ correl|safe }}
+      </div>
+    </div>
+    {% endif %}
+{% endif %}
+<p><sup>*</sup> All updates are not real time in order to save resources.</p>
+<p><sup>**</sup> Showing last 6 years, stats on whole period.</p>
+{% endblock %}

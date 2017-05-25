@@ -1,0 +1,22 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Login" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Login" %}</h1>
+{% endblock %}
+
+{% block content %}
+
+{% if user.is_authenticated %}
+<p>hey there, {{ user.username }}! Proceed to your <a href="{{ base_url }}/members/">settings</a>.</p>
+{% else %}
+   <ul class="nav nav-second-level">
+     <li><a href="{% url 'social:begin' 'facebook' %}"><i class="fa fa-facebook-official fa-fw"></i> {% trans "Login with Facebook" %}</a></li>
+     <li><a href="{% url 'social:begin' 'twitter' %}"><i class="fa fa-twitter fa-fw"></i> {% trans "Login with Twitter" %}</a></li>
+     <li><a href="{% url 'social:begin' 'google-oauth2' %}"><i class="fa fa-google fa-fw"></i> {% trans "Login with Google" %}</a></li>
+   </ul>
+{% endif %}
+
+{% endblock %}

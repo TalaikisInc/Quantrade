@@ -1,0 +1,161 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load static %}
+{% load humanize %}
+{% load collector_filters %}
+
+{% block title %}
+    {% trans "Machine generated portfolio" %}
+{% endblock %}
+
+{% block meta %}
+{% if stats %}
+    <meta property="og:image" content="{{ base_url }}/static/collector/images/meta_portfolio/{{ portfolio_slug }}.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1200" />
+    <meta property="twitter:image" content="{{ base_url }}/static/collector/images/meta_portfolio/{{ file_id }}.png" />
+    {% blocktrans %}
+      <meta property="og:description" content="Quantrade Ltd.: hundreds of profitable quantitative strategies and machine generated portfolios." />
+    {% endblocktrans %}
+    <link href="{% static "collector/dist/css/social.css" %}" rel="stylesheet" />
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{% spaceless %}
+<div class="row">
+    <div class="col-lg-16">
+        <div class="panel panel-default">
+            <div class="panel-body">
+                    <div id="chart">
+                      {% if graph %}
+                      {{ graph|safe }}
+                      {% endif %}
+                    </div>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <div class="panel-body">
+          {% include 'collector/social_share.html' %}
+          <!-- {% include 'collector/stats_table.html' %} -->
+        </div>
+
+    </div>
+    <!-- /.col-lg-8 -->
+</div>
+{% if stats %}
+<div class="table-responsive">
+  <table class="table table-bordered table-striped">
+      <thead>
+          <tr>
+              <th>{% trans "Portfolio statistic" %}</th>
+              <th></th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Basic info" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Margin" %}</th>
+            <td>{{ stats.margin|intcomma }}</td>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Portfolio health" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Fitness" %}<sup>1</sup></th>
+            <td>{{ stats.fitness|intcomma|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Sharpe ratio" %}</th>
+            <td>{{ stats.sharpe_ratio|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Win rate" %}</th>
+            <td>{{ stats.win_rate|floatformat:2 }}</td>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Portfolio risks" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Min deposit" %}<sup>2</sup></th>
+            <td>{{ stats.acc_minimum|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Portfolio max drawdown" %}</th>
+            <td>{{ stats.mdd|intcomma }}</td>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Profitability" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Total profit" %}</th>
+            <td>{{ stats.total_profit|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Yearly" %}</th>
+            <td>{{ stats.yearly|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Yearly, %" %}<sup>3</sup></th>
+            <td>{{ stats.yearly_p|floatformat:2 }}{% if stats.yearly_p %}%{% endif %}</td>
+        </tr>
+      </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if strategies_list %}
+<div class="panel-body">
+  <h3>Portfolio strategies</h3>
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>{% trans "Strategy" %}</th>
+                <th>{% trans "Broker" %}</th>
+                <th>{% trans "Weight" %}</th>
+                <th>{% trans "Margin" %}</th>
+                {% if user.is_authenticated %}
+                  <th>{% trans "Save to my own" %}</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+              <th></th>
+              <th></th>
+          </tr>
+          {% for strat in strategies_list %}
+          <tr>
+              <th><a href="{{ base_url }}/{{ strat.strategy.broker__slug }}/{{ strat.strategy.symbol__symbol }}/{{ strat.strategy.period__period }}/{{ strat.strategy.system__title }}/{% if strat.strategy.direction == 1 %}longs{% elif strat.strategy.direction == 2 %}shorts{% else %}longs_shorts{% endif %}/">{{ strat.strategy.symbol__symbol }} {{ strat.strategy.period__name }} {{ strat.strategy.system__title }} {% if strat.strategy.direction == 1 %}{% trans "Longs" %}{% elif strat.strategy.direction == 2 %}{% trans "Shorts" %}{% else %}{% trans "Longs & shorts" %}{% endif %}</a></th>
+              <td>{{ strat.strategy.symbol__broker__title }}</td>
+              <td>{{ strat.weight }}</td>
+              <td>{{ strat.strategy.symbol__margin_initial|multiply:strat.weight|floatformat:2 }}</td>
+              {% if user.is_authenticated %}
+                {% if strat.user_has_not %}
+                    <td><a href="{{ base_url }}/save/{{ strat.strategy.broker__slug }}/{{ strat.strategy.symbol__symbol }}/{{ strat.strategy.period__period }}/{{ strat.strategy.system__title }}/{% if strat.strategy.direction == 1 %}longs{% elif strat.strategy.direction == 2 %}shorts{% else %}longs_shorts{% endif %}/"><strong>{% trans "Save" %}</strong></a></td>
+                {% else %}
+                    <td>In my portfolio</td>
+                {% endif %}
+              {% endif %}
+          </tr>
+          {% endfor %}
+        </tbody>
+    </table>
+    <p><sup>1</sup> Fitness ratio is likelihood of profitability with respect to trade count (more profitable trades mean higher fitness).</p>
+    <p><sup>2</sup> Absolute account minimum for 1 lot = required margin + max drawdown + intrabar drawdown.</p>
+    <p><sup>3</sup> Yearly returns in % calculated based on abs. account minimum times 2 (=200% of free margin).</p>
+    <p><sup>*</sup> Showing last 6 years, stats on the whole period.</p>
+  </div>
+</div>
+{% endif %}
+
+{% endspaceless %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Broker account" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Broker account" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+<div class="col-lg-6">
+  <form action="{{ base_url }}/broker/" method="post">
+    <div class="form-group">
+   {% csrf_token %}
+   <table>
+     {{ form.as_table }}
+    </table>
+   <input type="submit"  class="btn btn-default" value="{% trans "Submit" %}" />
+ </div>
+  </form>
+</div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+      <p>{% if logged_user.account_number %}{% trans "Your registered account: " %}<strong>{{ logged_user.account_number }}</strong>{% endif %}{% if logged_user.broker %} (<strong>{{ logged_user.broker }}</strong>){% endif %}</p>
+    </div>
+</div>
+{% endblock %}

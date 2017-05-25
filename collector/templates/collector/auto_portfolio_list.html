@@ -1,0 +1,46 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Hassle free automation" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Hassle free automation with Autoportfolio Index (A.I. 50)" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="panel panel-body">
+    <div class="panel-body">
+  <p>Autoportfolio Index 50 is automatically constructed trading strategies index that
+    sends you all the trading signals from best strategies when they are generated. It
+    automatically adjusts to the changes in the markets, so you can relax
+    and enjoy your new life with freedom created by automation.</p>
+
+    <p>At first we planned to create this project where people would make
+      their own portfolios out from working strategies for diversifiaction
+      purposes, but then, after initial test, we thought - why not to remove
+      this step whatsoever and do everything in-house instead.</p>
+    <p>And now we have A.I. 50.</p>
+
+    <p>If you don't like to think over generating your own trades staring screens
+      all day long and would rather just enjoy other things you love, subscribe and get
+      the signals from autoportfolio of strategies without even lifting a finger!
+      You'll get signals on what, when and how much to buy or sell in order
+      to generate consistent profits.</p>
+
+    <p>Below stats represent past 9 years of returns using 0.01 lots for each trade. All strategies
+       are listed in the systems page and can be explored there. Ava TradeEU Ltd. as broker
+      is used.</p>
+
+</div>
+</div>
+
+<div class="panel panel-body">
+    <div class="panel-body">
+      {% for broker in brokers %}
+        <h3><a href="{{ base_url }}/ai/{{ broker.slug }}/">{{ broker.title }} index</a></h3>
+        {% empty %}
+        Nothing here yet.
+      {% endfor %}
+    </div>
+</div>
+{% endblock %}

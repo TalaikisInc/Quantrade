@@ -1,0 +1,33 @@
+{% extends "admin/change_form.html" %}
+{% block extrahead %}
+{{ block.super }}
+<script type="text/javascript" src="/js/ckeditor/ckeditor.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+var $ = jQuery = django.jQuery.noConflict();  // Use djangos jquery as our jQuery
+</script>
+
+<script type="text/javascript" src="/js/ckeditor/adapters/jquery.js"></script>
+
+<script type="text/javascript" charset="utf-8">
+$(document).ready( function(){
+ $( 'textarea' ).ckeditor({
+  "skin":"kama",
+  "width" : 850,
+  // "toolbar" : "Basic",  // uncomment this line to use a basic toolbar
+
+ });
+});
+
+</script>
+
+{# Adding some custom style to perty thing up a bit. #}
+<style type="text/css">
+div>.cke_skin_kama{
+ width: 100%;
+ padding: 0!important;
+ clear: both;
+}
+</style>
+
+{% endblock %}

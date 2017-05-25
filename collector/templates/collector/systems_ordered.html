@@ -1,0 +1,75 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}
+{% if first_page %}
+{% trans "Quantitative Trading Signals" %}
+{% else %}
+{% trans "Trading strategy:" %} {{ symbol_slug }} {{ period }} {{ system_slug }} {{ direction }}
+{% endif %}
+{% endblock %}
+
+{% block meta %}
+    <meta property="og:image" content="{{ base_url }}/static/collector/images/meta/{{ broker_slug }}=={{ symbol_slug }}=={{ period_slug }}=={{ system_slug }}=={{ direction_slug }}.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1200" />
+    <meta property="twitter:image" content="{{ base_url }}/static/collector/images/meta/{{ broker_slug }}=={{ symbol_slug }}=={{ period_slug }}=={{ system_slug }}=={{ direction_slug }}.png" />
+    {% blocktrans %}
+      <meta property="og:description" content="Quantrade Ltd.: hundreds of profitable quantitative strategies. Trading strategy: {{ symbol_slug }} {{ period }} {{ system_slug }} {{ direction }}, total profit for 1 lot: ${{ total_profit }}" />
+    {% endblocktrans %}
+    <link href="{% static "collector/dist/css/social.css" %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+{% spaceless %}
+<div class="panel panel-body">
+    <div class="panel-body">
+            {% include 'collector/index_type_heading.html' %}
+                <div id="chart">
+                  {% if graph %}
+                  {{ graph|safe }}
+                  {% endif %}
+    </div>
+</div>
+<div class="panel panel-body">
+    <div class="panel-body">
+          {% include 'collector/social_share.html' %}
+    </div>
+</div>
+<div class="panel panel-body">
+    <div class="panel-body">
+          {% if heat_image %}
+            <div class="col-md-7">
+          {% endif %}
+          {% include 'collector/stats_table.html' %}
+          {% if heat_image %}
+            </div>
+          {% endif %}
+
+          {% if heat_image %}
+            <div class="col-md-5">
+              <img src="{{ heat_image }}" class="img-responsive" alt="Monthly returns heatmap">
+            </div>
+          {% endif %}
+          {% if yearly_image %}
+            <div class="col-md-5">
+              <img src="{{ yearly_image }}" class="img-responsive" alt="A.I. 50 yearly returns">
+            </div>
+          {% endif %}
+    </div>
+</div>
+<div class="panel panel-body">
+    <div class="panel-body">
+                    <div id="chart">
+                      {% if hist_graph %}
+                      {{ hist_graph|safe }}
+                      {% endif %}
+                    </div>
+    </div>
+</div>
+</div>
+
+{% endspaceless %}
+{% endblock %}

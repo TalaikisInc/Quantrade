@@ -1,0 +1,164 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2016-11-25 19:29+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: .\collector\admin.py:15
+msgid "Advanced options"
+msgstr ""
+
+#: .\templates\collector\400.html:4 .\templates\collector\400.html:7
+msgid "Bad request 400"
+msgstr ""
+
+#: .\templates\collector\403.html:4 .\templates\collector\403.html:7
+msgid "Not allowed 403"
+msgstr ""
+
+#: .\templates\collector\404.html:4 .\templates\collector\404.html:7
+msgid "Not found 404"
+msgstr ""
+
+#: .\templates\collector\500.html:4 .\templates\collector\500.html:7
+msgid "Server error 500"
+msgstr ""
+
+#: .\templates\collector\base.html:44
+msgid "Home"
+msgstr ""
+
+#: .\templates\collector\base.html:45
+msgid "How it works"
+msgstr ""
+
+#: .\templates\collector\base.html:57
+msgid "Account "
+msgstr ""
+
+#: .\templates\collector\base.html:65 .\templates\collector\symbols.html:4
+#: .\templates\collector\symbols.html:7
+msgid "Symbols"
+msgstr ""
+
+#: .\templates\collector\base.html:66 .\templates\collector\systems.html:4
+#: .\templates\collector\systems.html:7
+msgid "Systems"
+msgstr ""
+
+#: .\templates\collector\base.html:67
+msgid "Contact us"
+msgstr ""
+
+#: .\templates\collector\base.html:69
+msgid "About"
+msgstr ""
+
+#: .\templates\collector\broker_form.html:4
+#: .\templates\collector\broker_form.html:7
+msgid "Broker account"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:6
+msgid "Quantitative Trading Signals"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:8
+msgid "Trading strategy:"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:24
+msgid "Add to portfolio"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:27
+msgid "Register to add to portfolio"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:29
+#: .\templates\collector\strategy_page.html:4
+#: .\templates\collector\strategy_page.html:7
+msgid "Strategy stats"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:34
+msgid "Instruments"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:46
+msgid "Periods"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:59
+msgid "Strategies"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:72
+msgid "Direction"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:76
+msgid "Only longs"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:77
+msgid "Only shorts"
+msgstr ""
+
+#: .\templates\collector\datatypefield_list.html:78
+msgid "Longs &amp; shorts"
+msgstr ""
+
+#: .\templates\collector\portfolio_view.html:4
+#: .\templates\collector\portfolio_view.html:7
+msgid "Portfolio view"
+msgstr ""
+
+#: .\templates\collector\save_portfolio.html:4
+msgid "This strategy saved"
+msgstr ""
+
+#: .\templates\collector\save_portfolio.html:7
+msgid "Strategy saved!"
+msgstr ""
+
+#: .\templates\collector\signaltypefield_list.html:14
+msgid "My history"
+msgstr ""
+
+#: .\templates\collector\symbols.html:16 .\templates\collector\systems.html:15
+msgid "Nothing here yet."
+msgstr ""
+
+#: .\templates\registration\contact.html:19
+msgid "Subject"
+msgstr ""
+
+#: .\templates\registration\contact.html:23
+msgid "Message"
+msgstr ""
+
+#: .\templates\registration\contact.html:27
+msgid "Name"
+msgstr ""
+
+#: .\templates\registration\contact.html:31
+msgid "your@email"
+msgstr ""
+
+#: .\templates\registration\login.html:4 .\templates\registration\login.html:7
+msgid "Login"
+msgstr ""

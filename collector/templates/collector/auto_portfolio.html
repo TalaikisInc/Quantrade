@@ -1,0 +1,79 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Autoportfolio Index (A.I. 50) for " %}{{ broker.title }}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Autoportfolio Index (A.I. 50) for " %}{{ broker.title }}</h1>
+{% endblock %}
+
+{% block content %}
+
+<div class="panel panel-body">
+    <div class="panel-body">
+            <div id="chart">
+              {{ graph|safe }}
+            </div>
+    </div>
+    <!-- /.panel-body -->
+</div>
+
+<div class="panel panel-default">
+<div class="panel-body">
+  {% if heatmap %}
+    <div class="col-md-7">
+  {% endif %}
+    {% include 'collector/stats_table.html' %}
+  {% if heatmap %}
+    </div>
+  {% endif %}
+  {% if heatmap %}
+    <div class="col-md-5">
+      <img src="{{ heatmap }}" class="img-responsive" alt="A.I. 50 monthly returns heatmap">
+    </div>
+  {% endif %}
+
+  {% if yearly_img %}
+  <div class="col-md-5">
+      <img src="{{ yearly_img }}" class="img-responsive" alt="A.I. 50 yearly returns">
+    </div>
+  {% endif %}
+
+</div>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-body">
+      <p>Distribution of returns is most reliable indicator to show how strategy returns compares with buy and hold returns, e.g. if we derive some alpha edge.
+        If strategy returns distribution aproximation line is above the buy ad hold line on the right (positive returns) and below on the left (negative returns), it is deriving more than simple buy and hold.</p>
+            <div id="chart">
+              {% if hist_graph %}
+              {{ hist_graph|safe }}
+              {% endif %}
+            </div>
+    </div>
+    <!-- /.panel-body -->
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-body">
+      {% if margin_graph %}
+      <div id="chart">
+        {{ margin_graph|safe }}
+      </div>
+      {% endif %}
+    </div>
+</div>
+
+
+<div class="panel panel-default">
+    <div class="panel-body">
+      {% if trades_graph %}
+      <div id="chart">
+        {{ trades_graph|safe }}
+      </div>
+      {% endif %}
+    </div>
+</div>
+
+{% endblock %}

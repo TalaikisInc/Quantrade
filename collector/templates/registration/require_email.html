@@ -1,0 +1,8 @@
+<form action="{% url "social:complete" backend=backend %}" method="post" role="form">
+    {% csrf_token %}
+    <div class="form-group">
+        <label class="control-label" for="email">Email address:</label>
+        <input class="form-control" id="email" type="email" name="email" value="" required />
+    </div>
+    <button type="submit">Submit</button>
+</form>

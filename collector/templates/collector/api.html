@@ -1,0 +1,59 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{% trans "API" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "API" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="panel panel-default">
+<div class="panel-body">
+  <h3>Access point</h3>
+  <ul>
+    <li>https://api.quantrade.co.uk/</li>
+  </ul>
+  <h3>Endpoints</h3>
+  <ul>
+    <li>Brokers: /brokers/</li>
+    <li>Symbols: /symbols/</li>
+    <li>Periods: /periods/</li>
+    <li>Trading strategies: /systems/</li>
+    <li>Strategy signals: /&lt;broker_slug&gt;/&lt;symbol&gt;/&lt;period_minutes&gt;/&lt;strategy&gt;/&lt;api_key&gt;/</li>
+    <li>Stats:: /stats/&lt;broker_slug&gt;/&lt;symbol&gt;/&lt;period_minutes&gt;/&lt;strategy&gt;/&lt;trade_direction&gt;/</li>
+    <li>Index components:: /indexes/&lt;index&gt;/&lt;broker_slug&gt;/components/</li>
+    <li>Latest index signals: /indexes/&lt;index&gt;/&lt;broker_slug&gt;/latest/&lt;days&gt;/</li>
+    <li>Index results: /indexes/&lt;index&gt;/&lt;broker_slug&gt;/results</li>
+  </ul>
+  <h3>Formats, methods</h3>
+  <ul>
+    <li>json, get</li>
+  </ul>
+  <h3>Example</h3>
+  <p>First you need to know broker slug from list of brokers, symbols, period and strategy from lists of respective entities and then request signals.</p>
+    <ul>
+      <li>/ava_trade_eu_ltd/GOOGLE/1440/WND1/</li>
+    </ul>
+    <p><img src="{% static "collector/images/api_signals.png" %}"></p>
+  <h3>Limits</h3>
+  <p>No limits currently whatsoever, except that signals are delayed by 1 bar (day, wek or month) for non-authenticated users (don't use &lt;api_key&gt; or enter anything instead).</p>
+  <h3>Authentication</h3>
+  <p>Authentication is needed only for strategies (i.e. signals) endpoint.</p>
+  <p>API key can be found inside your <a href="{{ base_url }}/performance/">members are</a> when you have some <a href="{{ base_url }}/brokers/">live trading account</a> opened through us.</p>
+  <h3>Trade directions</h3>
+  <ul>
+    <li>0 - Long & shorts</li>
+    <li>1 - Longs</li>
+    <li>2 - Shorts</li>
+  </ul>
+
+  <h3>Indexes</h3>
+  <ul>
+    <li>ai50</li>
+  </ul>
+</div>
+</div>
+
+{% endblock %}

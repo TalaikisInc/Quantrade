@@ -1,0 +1,136 @@
+{% load i18n %}
+{% load humanize %}
+
+<p>{% if autoportfolio %}Trading strategies index{% else %}Trading strategy {{ system_slug }} for {{ symbol_slug }} ({{ stats.broker__title }}) on {{ period }}, {{ direction }}{% endif %},
+    total profit for {% if autoportfolio %}0.01{% else %}1{% endif %} lot is ${{ stats.total_profit|intcomma }} or {{ stats.yearly_p|intcomma|floatformat:2 }}{% if stats.yearly_p %}%{% endif %} per year on average,
+    maximum strategy drawdown {{ stats.max_dd|intcomma }}
+    with Sharpe Ratio of {{ stats.sharpe }}.<p>
+
+<div class="table-responsive">
+  <table class="table table-bordered table-striped">
+      <thead>
+          <tr>
+              <th>Statistic, per {% if autoportfolio %}0.01{% else %}1{% endif %} lot</th>
+              <th>{% if autoportfolio %}{% else %}{{ stats.symbol__symbol }}{% endif %}</th>
+          </tr>
+      </thead>
+      <tbody>
+        <tr>
+            <th></th>
+            <th></th>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Symbol data" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Broker" %}</th>
+            {% if autoportfolio %}
+              <td>{{ stats.broker.title }}</td>
+            {% else %}
+              <td>{{ stats.broker__title }}</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>{% trans "Description" %}</th>
+            {% if autoportfolio %}
+            <td>Top strategies index.</td>
+            {% else %}
+              <td>{{ stats.symbol__description }}</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>{% trans "Currency" %}</th>
+            {% if autoportfolio %}
+              <td>{{ stats.symbol.currency }}</td>
+            {% else %}
+              <td>{{ stats.symbol__currency }}</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>{% trans "Required margin" %}</th>
+            {% if autoportfolio %}
+              <td>{{ stats.symbol.margin_initial|intcomma }}</td>
+            {% else %}
+              <td>{{ stats.symbol__margin_initial|intcomma }}</td>
+            {% endif %}
+        </tr>
+        <tr>
+            <th>{% trans "Commission" %}</th>
+            {% if autoportfolio %}
+              <td>Varies</td>
+            {% else %}
+              <td>{{ stats.symbol__commission|intcomma|floatformat:2 }}</td>
+            {% endif %}
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Strategy health" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Fitness ratio" %}<sup>1</sup></th>
+            <td>{{ stats.fitness|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Sharpe ratio (buy & hold)" %}</th>
+            <td>{{ stats.sharpe }} {% if stats.bh_sharpe %}({{ stats.bh_sharpe }}){% endif %}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Sortino ratio (buy & hold)" %}</th>
+            <td>{{ stats.sortino }} {% if stats.bh_sortino %}({{ stats.bh_sortino }}){% endif %}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Average trade" %}</th>
+            <td>{{ stats.avg_trade|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Average win" %}</th>
+            <td>{{ stats.avg_win|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Average loss" %}</th>
+            <td>{{ stats.avg_loss|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Win rate" %}</th>
+            <td>{{ stats.win_rate }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Trades" %}</th>
+            <td>{{ stats.trades|intcomma }}</td>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Profitability" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Total profit" %}</th>
+            <td>{{ stats.total_profit|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Profit per year" %}</th>
+            <td>{{ stats.yearly|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Profit per year, %" %}<sup>2</sup></th>
+            <td>{{ stats.yearly_p|floatformat:2 }}{% if stats.yearly_p %}%{% endif %}*</td>
+        </tr>
+        <tr>
+          <th colspan="2" style="text-align:center">{% trans "Strategy risk" %}</th>
+        <tr>
+        <tr>
+            <th>{% trans "Max intrabar drawdown" %}</th>
+            <td>{{ stats.intraday_dd|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Max drawdown" %}</th>
+            <td>{{ stats.max_dd|intcomma }}</td>
+        </tr>
+        <tr>
+            <th>{% trans "Abs. account inimum" %}<sup>4</sup></th>
+            <td>{{ stats.acc_minimum|intcomma }}</td>
+        </tr>
+      </tbody>
+  </table>
+    <p><sup>1</sup> Fitness ratio is likelihood of profitability with respect to trade count (more profitable trades mean higher fitness).</p>
+    <p><sup>2</sup> Yearly returns in % calculated based on abs. account minimum times 2 (~200% of free margin). This is also not compounded to reflect real returns from the strategy, but the time.</p>
+    <p><sup>3</sup> Absolute account minimum for {% if autoportfolio %}0.01{% else %}1{% endif %} lot = required margin + max drawdown + intrabar drawdown.</p>
+    <p><sup>*</sup> Showing last 6 years, stats on the whole period.</p>
+</div>

@@ -1,0 +1,82 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}
+{% if first_page %}
+{% trans "Quantitative Trading Signals" %}
+{% else %}
+    {% trans "Trading strategy:" %} {{ symbol_slug }} {{ period }} {{ system_slug }} {{ direction }}
+{% endif %}
+{% endblock %}
+
+{% block meta %}
+    <meta name="twitter:site" content="@QuantradeLtd" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:type" content="website" />
+{% if meta_image %}
+    <meta property="og:image" content="{{ meta_image }}" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="2400" />
+    <meta property="og:image:height" content="1200" />
+    <meta property="twitter:image" content="{{ meta_image }}" />
+{% endif %}
+{% with stats.total_profit as tpr %}
+    <meta property="og:description" content="Quantrade Ltd.: hundreds of profitable quantitative strategies. Trading strategy: {{ symbol_slug }} {{ period }} {{ system_slug }} {{ direction }}, total profit for 1 lot: ${{ tpr }}" />
+{% endwith %}
+  <link href="{% static "collector/dist/css/social.css" %}" rel="stylesheet" />
+{% endblock %}
+
+{% block content %}
+{% spaceless %}
+{% if graph %}
+<div class="panel panel-body">
+    <div class="panel-body">
+            {% include 'collector/index_type_heading.html' %}
+                    <div id="chart">
+                      {{ graph|safe }}
+                    </div>
+    </div>
+</div>
+<div class="panel panel-body">
+    <div class="panel-body">
+          {% include 'collector/social_share.html' %}
+    </div>
+</div>
+<div class="panel panel-body">
+    <div class="panel-body">
+          {% if heat_image %}
+            <div class="col-md-7">
+          {% endif %}
+          {% include 'collector/stats_table.html' %}
+          {% if heat_image %}
+            </div>
+          {% endif %}
+
+          {% if heat_image %}
+            <div class="col-md-5">
+              <img src="{{ heat_image }}" class="img-responsive" alt="Monthly returns heatmap">
+            </div>
+          {% endif %}
+          {% if yearly_image %}
+            <div class="col-md-5">
+              <img src="{{ yearly_image }}" class="img-responsive" alt="A.I. 50 yearly returns">
+            </div>
+          {% endif %}
+    </div>
+</div>
+<div class="panel panel-body">
+    <div class="panel-body">
+              <p>Distribution of returns is most reliable indicator to show how strategy returns compares with buy and hold returns, e.g. if we derive some edge ("alpha").
+                To make it more simple, if strategy returns distribution aproximation line is above the buy ad hold line on the right (positive returns) and below on the left (negative returns), strategy is creating more than simple buy and hold with less risk.</p>
+                    <div id="chart">
+                      {% if hist_graph %}
+                      {{ hist_graph|safe }}
+                      {% endif %}
+                    </div>
+    </div>
+</div>
+{% endif %}
+{% endspaceless %}
+{% endblock %}

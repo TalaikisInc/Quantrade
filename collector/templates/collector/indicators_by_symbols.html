@@ -1,0 +1,22 @@
+{% extends "./base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Indicator: " %}{{ indicator.title }}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Indicator: " %}{{ indicator.title }}</h1>
+{% endblock %}
+
+{% block content %}
+
+<div class="panel-body">
+    <div id="chart">
+      {% if graph %}
+      {{ graph|safe }}
+      {% endif %}
+    </div>
+
+    </div>
+</div>
+
+{% endblock %}

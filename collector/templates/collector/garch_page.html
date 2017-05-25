@@ -1,0 +1,24 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "GJR-GARCH for " %}{{ symbol_slug }} {{ period.name }}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "GJR-GARCH forecast for " %}{{ symbol_slug }} {{ period_slug.name }}
+      {% if gval.0.change > 0 %}<small class="text-active bg-danger">{{ gval.0.change }}</small>{% elif gval.0.change < 0 %}
+      <small class="text-active bg-success">{{ gval.0.change }}</small>{% else %}{% endif %}</h1>
+  <p>Prediction made at {{ gval.0.date_time|date:"N d, Y" }} {{ gval.0.date_time|time:"H:i" }}</p>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-16">
+        <div class="panel panel-body">
+          <img src="{{ img_file }}" class="img-responsive" alt="GARCH forecast for next 5 days">
+          <p>* It is updated 5 times a day, mostly towards close of the world markets.
+            Above picture shows full 5 bars forecasted. Value is multiplied by 100 to
+            reduce decimal points.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

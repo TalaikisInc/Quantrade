@@ -1,0 +1,83 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "My Quantrade account" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "My Quantrade account" %}</h1>
+{% endblock %}
+
+{% block content %}
+
+<h3>Twitter</h3>
+{% if twitter_login %}
+  <p>{% trans "Connected as" %} <a href="https://twitter.com/{{ twitter_login.extra_data.access_token.screen_name }}/" target="_blank">@{{ twitter_login.extra_data.access_token.screen_name }}</a></p>
+  {% if can_disconnect %}
+    <form method="post" action="{% url 'social:disconnect' 'twitter' %}">
+      {% csrf_token %}
+      <button type="submit">{% trans "Disconnect from Twitter" %}</button>
+    </form>
+  {% else %}
+    <button type="button" disabled>{% trans "Disconnect from Twitter" %}</button>
+    <p style="color: red">{% trans "You must" %} <a href="{% url 'password' %}">{% trans "define a password" %}</a> {% trans "for your account before disconnecting from Twitter." %}</p>
+  {% endif %}
+{% else %}
+  <a href="{% url 'social:begin' 'twitter' %}">{% trans "Connect to Twitter" %}</a>
+{% endif %}
+
+
+<h3>Facebook</h3>
+{% if facebook_login %}
+  <p>{% trans "Connected as" %} <a href="https://facebook.com/{{ facebook_login.extra_data.id }}/" target="_blank">{{ facebook_login.extra_data.first_name }} {{ facebook_login.extra_data.last_name }}</a></p>
+  {% if can_disconnect %}
+    <form method="post" action="{% url 'social:disconnect' 'facebook' %}">
+      {% csrf_token %}
+      <button type="submit">{% trans "Disconnect from Facebook" %}</button>
+    </form>
+  {% else %}
+    <button type="button" disabled>{% trans "Disconnect from Facebook" %}</button>
+    <p style="color: red">{% trans "You must" %} <a href="{% url 'password' %}">{% trans "define a password" %}</a> {% trans "for your account before disconnecting from Facebook." %}</p>
+  {% endif %}
+{% else %}
+  <a href="{% url 'social:begin' 'facebook' %}">{% trans "Connect to Facebook" %}</a>
+{% endif %}
+
+
+<h3>Google</h3>
+{% if google_login %}
+  <p>{% trans "Connected as" %} <a href="{{ request.user.url }}/" target="_blank">{{ request.user.display_name }}</a></p>
+  {% if can_disconnect %}
+    <form method="post" action="{% url 'social:disconnect' 'google-oauth2' %}">
+      {% csrf_token %}
+      <button type="submit">{% trans "Disconnect from Google" %}</button>
+    </form>
+  {% else %}
+    <button type="button" disabled>Disconnect from Google</button>
+    <p style="color: red">{% trans "You must" %} <a href="{% url 'password' %}">{% trans "define a password" %}</a> {% trans "for your account before disconnecting from Google." %}"</p>
+  {% endif %}
+{% else %}
+  <a href="{% url 'social:begin' 'google-oauth2' %}">{% trans "Connect to Google" %}</a>
+{% endif %}
+
+<h3>Linkedin</h3>
+{% if linkedin_login %}
+  <p>{% trans "Connected as" %} <a href="{{ request.user.url }}/" target="_blank">{{ request.user.display_name }}</a></p>
+  {% if can_disconnect %}
+    <form method="post" action="{% url 'social:disconnect' 'linkedin-oauth2' %}">
+      {% csrf_token %}
+      <button type="submit">{% trans "Disconnect from Linkedin" %}</button>
+    </form>
+  {% else %}
+    <button type="button" disabled>Disconnect from Google</button>
+    <p style="color: red">{% trans "You must" %} <a href="{% url 'password' %}">{% trans "define a password" %}</a> {% trans "for your account before disconnecting from Linkedin." %}"</p>
+  {% endif %}
+{% else %}
+  <a href="{% url 'social:begin' 'linkedin-oauth2' %}">{% trans "Connect to Linkedin" %}</a>
+{% endif %}
+
+{% if can_disconnect %}
+<p>&nbsp;</p>
+<p><a href="{{ base_url }}/delete_account/{{ user.get_username }}/N/"><button type="button" class="btn btn-danger">{% trans "Delete my account" %}</button></a></p>
+{% endif %}
+
+{% endblock %}

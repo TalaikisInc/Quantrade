@@ -1,0 +1,12 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Error when deleting account" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Error while deleting account." %}</h1>
+{% endblock %}
+
+{% block content %}
+   {{ context.ERROR }}
+{% endblock %}

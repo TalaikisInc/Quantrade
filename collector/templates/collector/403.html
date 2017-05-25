@@ -1,0 +1,11 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load cache %}
+
+{% cache 500000 nochange %}
+{% block title %}{% trans "Not allowed 403" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Not allowed 403" %}</h1>
+{% endblock %}
+{% endcache %}

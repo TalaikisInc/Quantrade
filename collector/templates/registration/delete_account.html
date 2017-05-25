@@ -1,0 +1,24 @@
+{% extends 'collector/base.html' %}
+{% load i18n %}
+
+{% if confirmed == 'Y' %}
+  {% block title %}{% trans "Your account deleted!" %}{% endblock %}
+{% else %}
+  {% block title %}{% trans "Sure?" %}{% endblock %}
+{% endif %}
+
+{% block header %}
+  {% if confirmed == 'Y' %}
+    <h1>{% trans "Your account deleted!" %}</h1>
+  {% else %}
+    <h1>{% trans "You sure?" %}</h1>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+{% if confirmed == 'Y' %}
+   <p>{% trans "You have successfully deleted your account." %}</p>
+{% else %}
+   <p><a href="{{ base_url }}/delete_account/{{ user.get_username }}/Y/"><button type="button" class="btn btn-danger">{% trans "I'm sure, delete account" %}</button></a></p>
+{% endif %}
+{% endblock %}

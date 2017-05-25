@@ -1,0 +1,37 @@
+{% extends "./base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Indicators" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Indicators" %}</h1>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>{% trans "Indicator" %}</th>
+                <th>{% trans "Description" %}</th>
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+              <th></th>
+              <th></th>
+          </tr>
+          {% for indie in indicators %}
+          <tr>
+            <th><a href="{{ base_url }}/indicators/{{ broker_slug }}/{{ indie.title }}/">{{ indie.title }}</a></th>
+            <td>{% if indie.description %}{{ indie.description }}{% else %}-{% endif %}</td>
+          {% empty %}
+            {% trans "Nothing here yet." %}
+          </tr>
+          {% endfor %}
+        </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

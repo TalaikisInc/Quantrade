@@ -1,0 +1,161 @@
+{% load i18n %}
+
+{% if first_page %}
+{% blocktrans %}
+<div class="panel-body">
+  <h1 class="display-4">Hundreds of professional profitable trading strategies live</h1>
+</div>
+{% endblocktrans %}
+{% endif %}
+
+<div class="panel-heading">
+    {% if user.is_authenticated %}
+        {% if portfolio %}
+            &nbsp;
+        {% else %}
+            <!-- <a href="{{ base_url }}/save/{{ broker_slug }}/{{ symbol_slug }}/{{ period_slug }}/{{ system_slug }}/{{ direction_slug  }}/"><button type="button" class="btn btn-primary btn-sm">{% trans "Add to portfolio" %}</button></a> -->&nbsp;
+        {% endif %}
+
+        {% if is_account_number and is_customer %}
+            {% trans "Welcome" %}, {{ user.username }}
+         {% elif is_customer %}
+              {% if is_account_number %}
+                  {% trans "Welcome" %}, {{ user.username }}Ųnbsp;
+              {% else %}
+                  <a href="{{ base_url}}/broker/"><button type="button" class="btn btn-primary btn-sm">{% trans "STEP 3. Register your account number." %}</button></a>&nbsp;
+              {% endif %}
+          {% else %}
+              <a href="{{ base_url }}/brokers/"><button type="button" class="btn btn-danger btn-sm">{% trans "STEP 2. Register for broker account" %}</button></a>&nbsp;
+          {% endif %}
+    {% else %}
+        <!-- <a href="{{ base_url }}/{{ members_area_nae }}/"><button type="button" class="btn btn-primary btn-sm">{% trans "STEP 1. Register to add to portfolio" %}</button></a>&nbsp; -->&nbsp;
+    {% endif %}
+      <!-- <a href="{{ base_url }}/strategy/{{ broker_slug }}/{{ symbol_slug  }}/{{ period_slug  }}/{{ system_slug }}/{{ direction_slug  }}/"><button type="button" class="btn btn-info btn-sm">{% trans "Strategy stats" %}</button></a>&nbsp; -->
+      <!-- <a href="{{ base_url }}/full_strategy/{{ broker_slug }}/{{ symbol_slug  }}/{{ period_slug  }}/{{ system_slug }}/{{ direction_slug  }}/"><button type="button" class="btn btn-info btn-sm">{% trans "Full chart" %}</button></a>&nbsp; -->
+
+      {% if indx %}
+        {% if first_page %}
+          {% if full_v %}
+            <a href="{{ base_url }}/best_systems/full_history/1/"><button type="button" class="btn btn-outline btn-default">{% trans "Next" %}</button></a>&nbsp;[0/{{ pages }}]
+          {% else %}
+            <a href="{{ base_url }}/best_systems/1/"><button type="button" class="btn btn-outline btn-default">{% trans "Next" %}</button></a>&nbsp;[0/{{ pages }}]
+          {% endif %}
+        {% endif %}
+      {% else %}
+        {% if next_page %}
+        {% if next_page == 1 %}
+          {% if full_v %}
+            <a href="{{ base_url }}/best_systems/full_history/{{ next_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Next" %}</button></a>&nbsp;[{{ this_page }}/{{ pages }}]&nbsp;
+          {% else %}
+            <a href="{{ base_url }}/best_systems/{{ next_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Next" %}</button></a>&nbsp;[{{ this_page }}/{{ pages }}]&nbsp;
+          {% endif %}
+        {% else %}
+          {% if full_v %}
+            <a href="{{ base_url }}/best_systems/full_history/{{ prev_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Previous" %}</button></a>&nbsp;[{{ this_page }}/{{ pages }}]&nbsp;
+            <a href="{{ base_url }}/best_systems/full_history/{{ next_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Next" %}</button></a>&nbsp;
+          {% else %}
+            <a href="{{ base_url }}/best_systems/{{ prev_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Previous" %}</button></a>&nbsp;[{{ this_page }}/{{ pages }}]&nbsp;
+            <a href="{{ base_url }}/best_systems/{{ next_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Next" %}</button></a>&nbsp;
+          {% endif %}
+        {% endif %}
+        {% else %}
+          {% if full_v %}
+            <a href="{{ base_url }}/best_systems/full_history/{{ prev_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Previous" %}</button></a>&nbsp;[{{ this_page }}/{{ pages }}]&nbsp;
+          {% else %}
+            <a href="{{ base_url }}/best_systems/{{ prev_page }}/"><button type="button" class="btn btn-outline btn-default">{% trans "Previous" %}</button></a>&nbsp;[{{ this_page }}/{{ pages }}]&nbsp;
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+    <i class="fa fa-bar-chart-o fa-fw"></i> {{ symbol_slug }}&nbsp;
+    <i class="fa fa-clock-o fa-fw"></i> {{ period }}&nbsp;
+    <i class="fa fa-superscript fa-fw"></i> {{ system_slug }}&nbsp;
+    <i class="fa fa-arrow-right fa-fw"></i> {{ direction }}&nbsp;
+    {% if ordered %}
+      {% if full_v %}
+        <a href="{{ base_url }}/best_systems/{{ this_page }}/">{% trans "Recent history" %}</a>&nbsp;
+      {% else %}
+        <a href="{{ base_url }}/best_systems/full_history/{{ this_page }}/">{% trans "Full history" %}</a>&nbsp;
+      {% endif %}
+    {% endif %}
+
+    <div class="pull-left">
+      <!-- <div class="btn-group">
+           <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+              {% trans "Brokers" %}
+              <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu pull-right" role="menu">
+            {% for brok in brokers %}
+              <li><a href="{{ base_url }}/{{ broker_slug }}/{{ symbol_slug }}/{{ period_slug  }}/{{ system_slug }}/{{ direction_slug  }}/">{{ brok.title }}</a></li>
+            {% endfor %}
+          </ul>
+
+      </div>
+      &nbsp;-->
+        <div class="btn-group">
+            <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                {% trans "Symbols" %}
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu pull-right" role="menu">
+              {% for sym in symbols %}
+                <li><a href="{{ base_url }}/{{ sym.broker__slug }}/{{ sym.symbol }}/{{ period_slug  }}/{{ system_slug }}/{{ direction_slug  }}/">{{ sym.symbol }}</a></li>
+              {% endfor %}
+            </ul>
+        </div>
+        &nbsp;
+        <div class="btn-group">
+            <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                {% trans "Periods" %}
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu pull-right" role="menu">
+              {% for per in periods %}
+                <li><a href="{{ base_url }}/{{ broker_slug }}/{{ symbol_slug  }}/{{ per.period }}/{{ system_slug }}/{{ direction_slug  }}/">{{ per.name }}</a></li>
+              {% endfor %}
+
+            </ul>
+        </div>
+        &nbsp;
+        <div class="btn-group">
+            <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                {% trans "Strategies" %}
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu pull-right" role="menu">
+              {% for system in systems %}
+                <li><a href="{{ base_url }}/{{ broker_slug }}/{{ symbol_slug  }}/{{ period_slug  }}/{{ system.title }}/{{ direction_slug  }}/">{{ system.title }}</a></li>
+              {% endfor %}
+                </li>
+            </ul>
+        </div>
+        &nbsp;
+        <div class="btn-group">
+            <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown">
+                {% trans "Direction" %}
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu pull-right" role="menu">
+              <li><a href="{{ base_url }}/{{ broker_slug }}/{{ symbol_slug  }}/{{ period_slug  }}/{{ system_slug }}/longs/">{% trans "Only longs" %}</a></li>
+              <li><a href="{{ base_url }}/{{ broker_slug }}/{{ symbol_slug  }}/{{ period_slug  }}/{{ system_slug }}/shorts/">{% trans "Only shorts" %}</a></li>
+              <li><a href="{{ base_url }}/{{ broker_slug }}/{{ symbol_slug  }}/{{ period_slug  }}/{{ system_slug }}/longs_shorts/">{% trans "Longs & shorts" %}</a></li>
+                </li>
+            </ul>
+        </div>
+        &nbsp;
+    </div>
+</div>
+{% block java %}
+  <script>
+  $('#modal').on('show.bs.modal', function (event) {
+  var modal = $(this)
+  $.ajax({
+    url: "{{ base_url }}/save/{{ broker_slug }}/{{ symbol_slug }}/{{ period_slug }}/{{ system_slug }}/{{ direction_slug  }}/",
+    context: document.body
+    }).done(function(response) {
+    modal.html(response);
+  });
+  })
+  </script>
+{% endblock %}

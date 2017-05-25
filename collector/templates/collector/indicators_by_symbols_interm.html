@@ -1,0 +1,52 @@
+{% extends "./base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Indicator: " %}{{ indicator.title }}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Indicator: " %}{{ indicator.title }}</h1>
+{% endblock %}
+
+{% block content %}
+{% if indicator_slug %}
+<div class="row">
+  <div class="table-responsive">
+    <table class="table table-bordered table-striped">
+        <thead>
+            <tr>
+                <th>{% trans "Symbol" %}</th>
+                {% for per in periods %}
+                    <td></td>
+                {% empty %}
+                    {% trans "Nothing here yet." %}"
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+          <tr>
+              <th></th>
+              <th></th>
+          </tr>
+          {% for symbol in symbols %}
+          <tr>
+              <th>{{ symbol.symbol }}</th>
+              {% for per in periods %}
+                  <td><a href="{{ base_url }}/indicators/i/{{ broker.slug }}/{{ symbol.symbol }}/{{ per.period }}/{{ indicator_slug }}/">{{ per.name }}</a></td>
+              {% empty %}
+                  {% trans "Nothing here yet." %}"
+              {% endfor %}
+          {% empty %}
+            {% trans "Nothing here yet." %}"
+          </tr>
+          {% endfor %}
+        </tbody>
+    </table>
+  </div>
+</div>
+
+  <ul>
+{% else %}
+<p>{% trans "No symbols found." %}"</p>
+{% endif %}
+
+{% endblock %}

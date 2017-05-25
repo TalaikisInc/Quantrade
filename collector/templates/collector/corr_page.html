@@ -1,0 +1,70 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{% trans "Correlations for " %}{{ symbol_slug }}{% endblock %}
+
+{% block meta %}
+  <link href="{% static "collector/vendor/datatables-plugins/dataTables.bootstrap.css" %}" rel="stylesheet">
+  <link href="{% static "collector/vendor/datatables-responsive/dataTables.responsive.css" %}" rel="stylesheet">
+{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Correlations for " %}{{ symbol_slug }}</h1>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                {{ symbol_slug }}
+            </div>
+            <!-- /.panel-heading -->
+            <div class="panel-body">
+                <table width="100%" class="table table-striped table-bordered table-hover" id="dataTables-example">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Correlation" %}</th>
+                            <th>{% trans "Symbol" %}</th>
+                            <th>{% trans "Broker" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in corrs %}
+                          <tr class="odd gradeX">
+                            <td>{{ c.value }}</td>
+                            <td>{{ c.symbol_b.symbol }}</td>
+                            <td>{{ c.symbol_b.broker.title }}</td>
+                          </tr>
+                        {% empty %}
+                        <tr>
+                          <td cols=7>{% trans "Nothing here yet." %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <!-- /.panel-body -->
+        </div>
+        <p>* Correlations are long term, daily period.</p>
+        <!-- /.panel -->
+    </div>
+    <!-- /.col-lg-12 -->
+</div>
+{% endblock %}
+
+{% block java %}
+    <script src="{% static "collector/vendor/datatables/js/jquery.dataTables.min.js" %}"></script>
+    <script src="{% static "collector/vendor/datatables-plugins/dataTables.bootstrap.min.js" %}"></script>
+    <script src="{% static "collector/vendor/datatables-responsive/dataTables.responsive.js" %}"></script>
+    <script>
+    $(document).ready(function() {
+        $('#dataTables-example').DataTable({
+            responsive: true
+        });
+    });
+    </script>
+{% endblock %}

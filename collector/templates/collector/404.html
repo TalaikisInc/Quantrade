@@ -1,0 +1,11 @@
+{% extends "./base.html" %}
+{% load i18n %}
+{% load cache %}
+
+{% cache 500000 nochange %}
+{% block title %}{% trans "Not found 404" %}{% endblock %}
+
+{% block header %}
+  <h1>{% trans "Not found 404" %}</h1>
+{% endblock %}
+{% endcache %}
