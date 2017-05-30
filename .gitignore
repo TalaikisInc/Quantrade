@@ -17,6 +17,7 @@ __pycache__/
 *.mp
 *.zip
 *.conf
+static/
 
 # Distribution / packaging
 .Python
