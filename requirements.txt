@@ -16,3 +16,14 @@ django-ckeditor
 django-oauth-toolkit
 python-social-auth==0.2.21
 social-auth-app-django
+asyncpg
+aoiklivereload
+aoiklivereload
+plotly
+quandl
+seaborn
+django-redis-cache
+Pillow
+facebook-sdk
+python-twitter
+arch

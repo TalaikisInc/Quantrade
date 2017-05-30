@@ -73,6 +73,16 @@ if 'SM' in self.name:
 * It implements some concept of "automarketing", when results for each trade and month are sent to social networks, RSS, email.
 * As always, Nginx SSL config with A level security, big names don't do that.
 
+## How to start
+
+1. Setup and configure everything (biggest part).
+Then easy:
+2. python utils.py --setup=y
+3. python utils.py --hourly=y
+4. python utils.py --daily=y
+5. python utils.py --monthly=y
+6. You have your site.
+
 ## History
 
 It was created as part of Project 10x. Project 10x was started several years ago in order to challenge myself and find interesting solutions for generating 10x profits (more exactly, goal is 25% per month or 1200%/year) for retail traders, that are limited in many various ways, like higher commissions, unreliable brokers, lack of knowledge what really works, etc. Although, Quantrade didn't find anything in similar order, it also found a promising concept of index of strategies.
