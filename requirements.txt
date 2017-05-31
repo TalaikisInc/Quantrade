@@ -13,8 +13,10 @@ mysqlclient
 python-dotenv
 django-rosetta
 django-ckeditor
-django-oauth-toolkit
+django-oauth-toolkit==0.12.0
 python-social-auth==0.2.21
+oauth2client==4.0.0
+google-api-python-client==1.6.2
 social-auth-app-django
 asyncpg
 aoiklivereload
@@ -22,8 +24,11 @@ aoiklivereload
 plotly
 quandl
 seaborn
+uwsgi
 django-redis-cache
 Pillow
 facebook-sdk
 python-twitter
 arch
+hiredis
+djangorestframework
