@@ -3,7 +3,7 @@ from os import environ
 
 import django
 django.setup()
-from django.conf improt settings
+from django.conf import settings
 
 from dotenv import load_dotenv
 
