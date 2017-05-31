@@ -35,4 +35,9 @@ mkdir /home/quantrade/data/quandl/csv
 mkdir /home/quantrade/data/systems
 mkdir /home/quantrade/data/systems/csv
 
+chown -R www-data:www-data ~/.plotly
 sudo chown -R www-data:www-data /home/quantrade
+
+source activate quantrade
+cd /home/quantrade
+pip install -r requirements.txt

@@ -13,8 +13,8 @@ BASE_DIR = dirname(dirname('__file__'))
 BASE_PATH = dirname(BASE_DIR)
 load_dotenv(join(BASE_PATH, '.env'))
 
-DEV_ENV  = int(environ.get("QT_DEV_ENV"))
-VAGRANT = int(environ.get("QT_VAGRANT"))
+DEV_ENV  = int(environ.get("DEV_ENV"))
+VAGRANT = int(environ.get("VAGRANT"))
 
 TEMPLATE_NAME = environ.get("TEMPLATE_NAME")
 
@@ -43,7 +43,7 @@ STATICFILES_FINDERS = (
 QUANDL_API_KEY = environ.get("QUANDL_API_KEY")
 
 ADMINS = (
-    ("me", "me@me.com")
+    ("Tadas Talaikis", "info@talaikis.com")
 )
 
 MANAGERS = ADMINS
@@ -78,34 +78,34 @@ SOCIAL_AUTH_SESSION_EXPIRATION = False
 if not DEV_ENV:
     SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
 
-SOCIAL_AUTH_TWITTER_KEY = environ.get("QT_SOCIAL_AUTH_TWITTER_KEY")
-SOCIAL_AUTH_TWITTER_SECRET = environ.get("QT_SOCIAL_AUTH_TWITTER_SECRET")
-TWITTER_ACCESS_TOKEN_KEY = environ.get("QT_TWITTER_ACCESS_TOKEN_KEY")
-TWITTER_ACCESS_TOKEN_SECRET = environ.get("QT_TWITTER_ACCESS_TOKEN_SECRET")
+SOCIAL_AUTH_TWITTER_KEY = environ.get("SOCIAL_AUTH_TWITTER_KEY")
+SOCIAL_AUTH_TWITTER_SECRET = environ.get("SOCIAL_AUTH_TWITTER_SECRET")
+TWITTER_ACCESS_TOKEN_KEY = environ.get("TWITTER_ACCESS_TOKEN_KEY")
+TWITTER_ACCESS_TOKEN_SECRET = environ.get("TWITTER_ACCESS_TOKEN_SECRET")
 
-SOCIAL_AUTH_FACEBOOK_KEY = environ.get("QT_SOCIAL_AUTH_FACEBOOK_KEY")
-SOCIAL_AUTH_FACEBOOK_SECRET = environ.get("QT_SOCIAL_AUTH_FACEBOOK_SECRET")
+SOCIAL_AUTH_FACEBOOK_KEY = environ.get("SOCIAL_AUTH_FACEBOOK_KEY")
+SOCIAL_AUTH_FACEBOOK_SECRET = environ.get("SOCIAL_AUTH_FACEBOOK_SECRET")
 SOCIAL_AUTH_FACEBOOK_EXTRA_DATA = ['first_name', 'last_name', 'email']
 SOCIAL_AUTH_FACEBOOK_SCOPE = ['email']
 SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
     'fields': 'id, name, email, age_range'
 }
 
-FACEBOOK_PAGE_ID = environ.get("QT_FACEBOOK_PAGE_ID")
+FACEBOOK_PAGE_ID = environ.get("FACEBOOK_PAGE_ID")
 FACEBOOK_APP_ID = SOCIAL_AUTH_FACEBOOK_KEY
 FACEBOOK_APP_SECRET = SOCIAL_AUTH_FACEBOOK_SECRET
-FACEBOOK_PAGE_ACCESS_TOKEN = environ.get("QT_FACEBOOK_PAGE_ACCESS_TOKEN")
+FACEBOOK_PAGE_ACCESS_TOKEN = environ.get("FACEBOOK_PAGE_ACCESS_TOKEN")
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = environ.get("QT_SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = environ.get("QT_SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_KEY")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = environ.get("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
 SOCIAL_AUTH_GOOGLE_OAUTH2_USE_UNIQUE_USER_ID = True
 SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
     'access_type': 'offline',
     'approval_prompt': 'force'
 }
 
-SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = environ.get("QT_SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY")
-SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = environ.get("QT_SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET")
+SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY = environ.get("SOCIAL_AUTH_LINKEDIN_OAUTH2_KEY")
+SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = environ.get("SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET")
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile', 'r_emailaddress', 'rw_company_admin', 'w_share']
 
 SOCIAL_AUTH_DISCONNECT_PIPELINE = (
@@ -148,37 +148,12 @@ IP = '127.0.0.1'
 if VAGRANT:
     IP = '10.0.2.2'
 
-if DEV_ENV:
+if not DEV_ENV:
     CACHES = {
         'default': {
             'BACKEND': 'redis_cache.RedisCache',
             'LOCATION': [
-                    '{}:6379'.format(IP),
-                    #'11.21.26.29:6379',
-                ],
-            'OPTIONS': {
-                'DB': 1,
-                'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
-                'CONNECTION_POOL_CLASS_KWARGS': {
-                    'max_connections': 2048,
-                    'timeout': 60*60*6,
-                },
-                'PARSER_CLASS': 'redis.connection.HiredisParser',
-                "CLIENT_CLASS": "django_redis.client.DefaultClient",
-                'COMPRESSOR_CLASS': 'redis_cache.compressors.ZLibCompressor',
-                'COMPRESSOR_CLASS_KWARGS': {
-                    'level': 9,  # 0 - 9; 0 - no compression; 1 - fastest, biggest; 9 - slowest, smallest
-                },
-                'MASTER_CACHE': '{}:6379'.format(IP),
-            },
-        }
-    }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'redis_cache.RedisCache',
-            'LOCATION': [
-                    '{}:6379'.format(IP),
+                    '{}:6379'.format(environ.get("REDIS_HOST")),
                     #'12.19.14.26:6379',
                 ],
             'OPTIONS': {
@@ -271,15 +246,15 @@ FEED_DAYS_TO_SHOW = 90
 USER_KEY_SYMBOLS = 31
 
 if DEV_ENV:
-    DATABASE_HOST = IP
-    DATABASE_NAME = environ.get("QT_DEV_DATABASE_NAME")
-    DATABASE_USER = environ.get("QT_DEV_DATABASE_USER")
-    DATABASE_PASSWORD = environ.get("QT_DEV_DATABASE_PASSWORD")
+    DATABASE_HOST = environ.get("DEV_DATABASE_HOST")
+    DATABASE_NAME = environ.get("DEV_DATABASE_NAME")
+    DATABASE_USER = environ.get("DEV_DATABASE_USER")
+    DATABASE_PASSWORD = environ.get("DEV_DATABASE_PASSWORD")
 else:
-    DATABASE_HOST = environ.get("QT_DATABASE_HOST")
-    DATABASE_NAME = environ.get("QT_DATABASE_NAME")
-    DATABASE_USER = environ.get("QT_DATABASE_USER")
-    DATABASE_PASSWORD = environ.get("QT_DATABASE_PASSWORD")
+    DATABASE_HOST = environ.get("DATABASE_HOST")
+    DATABASE_NAME = environ.get("DATABASE_NAME")
+    DATABASE_USER = environ.get("DATABASE_USER")
+    DATABASE_PASSWORD = environ.get("DATABASE_PASSWORD")
 
 DATABASE_PORT = 5432
 
@@ -302,20 +277,20 @@ DATABASES = {
 MYSQL_DATABASE = DATABASE_NAME
 
 if DEV_ENV:
-    MYSQL_USERNAME = environ.get("QT_DEV_MYSQL_USERNAME")
-    MYSQL_PASSWORD = environ.get("QT_DEV_MYSQL_PASSWORD")
-    MYSQL_HOST = environ.get("QT_DEV_MYSQL_HOST")
+    MYSQL_USERNAME = environ.get("DEV_MYSQL_USERNAME")
+    MYSQL_PASSWORD = environ.get("DEV_MYSQL_PASSWORD")
+    MYSQL_HOST = environ.get("DEV_MYSQL_HOST")
 else:
-    MYSQL_USERNAME = environ.get("QT_MYSQL_USERNAME")
-    MYSQL_PASSWORD = environ.get("QT_MYSQL_PASSWORD")
-    MYSQL_HOST = environ.get("QT_MYSQL_HOST")
+    MYSQL_USERNAME = environ.get("MYSQL_USERNAME")
+    MYSQL_PASSWORD = environ.get("MYSQL_PASSWORD")
+    MYSQL_HOST = environ.get("MYSQL_HOST")
 
-MYSQL_PORT = int(environ.get("QT_MYSQL_PORT"))
+MYSQL_PORT = int(environ.get("MYSQL_PORT"))
 DEBUG = DEV_ENV
-SHOW_DEBUG = int(environ.get("QT_SHOW_DEBUG"))
+SHOW_DEBUG = int(environ.get("SHOW_DEBUG"))
 SINCE_WHEN = datetime(2016, 10, 1)
 
-DEFAULT_FROM_EMAIL = environ.get("QT_DEFAULT_FROM_EMAIL")
+DEFAULT_FROM_EMAIL = environ.get("DEFAULT_FROM_EMAIL")
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 EMAIL_HOST = environ.get("EMAIL_HOST")
@@ -335,7 +310,7 @@ NOTIFICATIONS_ENABLED = True
 
 HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Android; Mobile; rv:13.0) Gecko/13.0',
-    'From': environ.get("QT_DEFAULT_FROM_EMAIL")
+    'From': environ.get("DEFAULT_FROM_EMAIL")
 }
 
 PROXIES = {
@@ -373,11 +348,24 @@ LOCALE_PATHS = [
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
+    #'formatters':{
+    #'standard': {
+            #'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        #},
+    #},
+    'mail_admins': {
+        'class': 'django.utils.log.AdminEmailHandler',
+        'level': 'ERROR',
+        'include_html': True,
+    },
     'handlers': {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': join(BASE_DIR, 'logs', '{}_django.log'.format(FOLDER)),
+            'filename': join(BASE_PATH, 'logs', 'django.log'),
+            #'maxBytes': 1024 * 1024 * 10,  # 10Mb
+            #'backupCount': 5,
+            #'formatter': 'standard',
         },
     },
     'loggers': {
@@ -417,7 +405,7 @@ REST_FRAMEWORK = {
 SECRET_KEY = 'yjfhXwsp!O,uan2mcqcdwxtntihpimpetxqhyv+7zhbhc.ujbampcjs3@e5chfhqj3oucatkCrGkiRnb'
 
 if DEV_ENV:
-    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0']
+    ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0', 'quantrade.co.uk']
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
 else:

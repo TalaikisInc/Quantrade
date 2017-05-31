@@ -69,7 +69,7 @@ class AutoSlugifyOnSaveModel(models.Model):
 
 class Brokers(AutoSlugifyOnSaveModel):
     id = models.BigAutoField(primary_key=True)
-    title = models.CharField(max_length=80, verbose_name=T("Broker"), db_index=True, unique=True)
+    title = models.CharField(max_length=80, verbose_name=T("Broker"), unique=True)
     description = models.TextField(blank=True, null=True, verbose_name=T("Broker description"))
     slug = models.CharField(max_length=80, verbose_name=T("Broker slug"), blank=True, null=True)
     registration_url = models.URLField(verbose_name=T("Registration URL"), null=True, blank=True)

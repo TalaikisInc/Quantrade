@@ -76,7 +76,7 @@ urlpatterns = [
     url(r'^brokers/$', flat_views.flatpage, {'url': '/brokers/'}, name='brokers'),
     url(r'^trading_advice/$', flat_views.flatpage, {'url': '/trading_advice/'}, name='trading_advice'),
 
-] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler400 = 'collector.views.bad_request'
 handler403 = 'collector.views.permission_denied'

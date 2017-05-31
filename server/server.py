@@ -10,9 +10,11 @@ from aoiklivereload import LiveReloader
 
 from django.template.defaultfilters import slugify
 from django.utils.encoding import force_text
-from django.conf import settings
 from django.core import serializers
 
+import settings
+
+#TODO refactor all this
 
 async def conn():
     con = await asyncpg.connect(user=settings.DATABASE_USER,
@@ -33,12 +35,9 @@ REDIRECT_HTML = """
 """
 
 app = Sanic(__name__)
-if settings.DEV_ENV:
-    DOMAIN = str(settings.BASE_URL).split('/')[1]
-else:
-    DOMAIN = 'api.quantrade.co.uk'
 
-#if settings.DEBUG:
+DOMAIN = settings.API_HOST
+
 reloader = LiveReloader()
 reloader.start_watcher_thread()
 

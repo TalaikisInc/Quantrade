@@ -37,7 +37,7 @@ from django.conf import settings
 from . import easywebdav
 from .mysql_utils import create_symbol, mysql_connect_db #, _signals_to_mysql
 from .models import (Symbols, Brokers, Periods, Stats, Systems, QtraUser, \
-    Signals, Corr)
+    Signals, Corr, Indicator)
 from server.server import conn
 
 brokers = Brokers.objects.all()
@@ -1953,3 +1953,13 @@ def min_variance(loop):
 
     #except Exception as e:
         #print(colored.red("At min_variance ".format(e)))
+
+
+def execute_indicator(source):
+    code = compile(source, "string", "exec")
+
+    exec(code)
+
+def get_indicator_source(title):
+    indicator = Indicator.objects.filter(title=title)
+    return indicator.content
