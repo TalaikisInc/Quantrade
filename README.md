@@ -8,8 +8,8 @@ It uses data server, running Metatrader 4 platforms and processing server that g
 
 ## STATUS
 
-It's a beta, because it was changed many times over those few months and requires code reviews, which will be done
-after deciding how it will or should look when operable.
+It's a beta, because it was changed many times over those few months, requires code reviews, which will be done
+after deciding how it will or should look when operable, and most importantly, - remaining validation functionality.
 
 ## TODO
 
@@ -20,6 +20,7 @@ after deciding how it will or should look when operable.
 * ~~MQL4 EA.~~ (dropped?)
 * Indicators & strategies inside database/ user form.
 * If above, then API enhancements.
+* Tests.
 
 ## Requirements
 
@@ -27,6 +28,25 @@ after deciding how it will or should look when operable.
 * As Metatrader 4 is visual, it probably needs Windows server.
 * It needs both MySQL (receiving symbol data from MT4) and Postgres (everything else) servers.
 * Python 3.6+, Nginx, Redis, aio or cherry or uWsgi (original).
+
+## Technologies
+
+* [Python](https://github.com/python/cpython) 3.6+
+* [Django](https://github.com/django/django) 1.11+
+* [uWSGI](https://github.com/unbit/uwsgi)
+* [python-social-auth](https://github.com/omab/python-social-auth)
+* [pandas](https://github.com/pandas-dev/pandas)
+* [numpy](https://github.com/numpy/numpy)
+* [matplotlib](https://github.com/matplotlib/matplotlib)
+* [Plotly](https://github.com/plotly/plotly.py)
+* [python-dotenv](https://github.com/theskumar/python-dotenv)
+* [Sanic](https://github.com/channelcat/sanic)
+* [asyncpg](https://github.com/MagicStack/asyncpg)
+* [Quandl](https://github.com/quandl/quandl-python)
+* Redis
+* Nginx
+* [arch](https://github.com/bashtage/arch)
+* etc.
 
 ## Differences between open source and actual
 
