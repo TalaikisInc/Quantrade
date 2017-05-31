@@ -17,7 +17,6 @@ __pycache__/
 *.mp
 *.zip
 *.conf
-static/
 
 # Distribution / packaging
 .Python
@@ -27,6 +26,7 @@ develop-eggs/
 <<<<<<< HEAD
 Scripts/
 src/
+static/
 migrations/
 =======
 >>>>>>> be9a5c610d84fff55b03e0df46eb28d8fdf9cbad
