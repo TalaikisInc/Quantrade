@@ -9,9 +9,8 @@ from dotenv import load_dotenv
 from django.utils.translation import ugettext_lazy as T
 from django.template.defaultfilters import slugify
 
-BASE_DIR = dirname(dirname('__file__'))
-BASE_PATH = dirname(BASE_DIR)
-load_dotenv(join(BASE_PATH, '.env'))
+BASE_DIR = dirname(dirname(__file__))
+load_dotenv(join(BASE_DIR, '.env'))
 
 DEV_ENV  = int(environ.get("DEV_ENV"))
 VAGRANT = int(environ.get("VAGRANT"))
@@ -22,8 +21,8 @@ TEMPLATE_NAME = environ.get("TEMPLATE_NAME")
 WORKERS = 3
 API_WORKERS = 3
 FOLDER = 'quantrade'
-MEDIA_ROOT = join(BASE_PATH, "uploads")
-STATIC_ROOT = join(BASE_PATH, "static")
+MEDIA_ROOT = join(BASE_DIR, "uploads")
+STATIC_ROOT = join(BASE_DIR, "static")
 
 if DEV_ENV:
     BASE_URL = 'http://127.0.0.1:8001/'
@@ -57,7 +56,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'ckeditor',
-    'server',
     'oauth2_provider',
     'django.contrib.sites',
     'django.contrib.flatpages',
@@ -362,7 +360,7 @@ LOGGING = {
         'file': {
             'level': 'ERROR',
             'class': 'logging.FileHandler',
-            'filename': join(BASE_PATH, 'logs', 'django.log'),
+            'filename': join(BASE_DIR, 'logs', 'django.log'),
             #'maxBytes': 1024 * 1024 * 10,  # 10Mb
             #'backupCount': 5,
             #'formatter': 'standard',

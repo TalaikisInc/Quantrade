@@ -1,22 +1,19 @@
 from server import app
 
-import settings
+from server import settings
 
 
 def main():
     try:
         if not settings.DEV_ENV:
-            ssl = {'cert': "/etc/ssl/certs/nginx-selfsigned.crt",
-                    'key': "/etc/ssl/private/nginx-selfsigned.key"}
-            app.run(host=settings.HOST,
+            app.run(host=settings.API_HOST,
                 port=settings.PORT,
                 sock=None,
                 debug=settings.DEBUG,
                 workers=settings.API_WORKERS,
-                ssl=ssl,
                 log_config=None)
         else:
-            app.run(host=settings.HOST,
+            app.run(host=settings.API_HOST,
                 port=settings.PORT,
                 sock=None,
                 debug=settings.DEBUG)

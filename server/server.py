@@ -1,5 +1,6 @@
 from datetime import (datetime, timedelta)
 from functools import lru_cache
+from os import environ
 
 import asyncpg
 from sanic import Sanic
@@ -12,7 +13,7 @@ from django.template.defaultfilters import slugify
 from django.utils.encoding import force_text
 from django.core import serializers
 
-import settings
+from . import settings
 
 #TODO refactor all this
 
