@@ -9,9 +9,9 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.http import HttpResponseRedirect
 
-from social.apps.django_app.default.models import UserSocialAuth
-from social.apps.django_app.utils import psa
-from social.pipeline.partial import partial
+from social_django.models import UserSocialAuth
+from social_django.utils import psa
+from social_core.pipeline.partial import partial
 
 from .models import (QtraUser, Brokers, Contacts)
 from .forms import (ContactForm, ContactFormUser, BrokerForm, EmailForm)
@@ -257,7 +257,6 @@ def broker_page(request):
     return render(request, '{}/broker.html'.format(settings.TEMPLATE_NAME), {'form': form, 'logged_user': logged_user })
 
 
-@login_required
 def login_error(request):
     return render(request, 'registration/login_error.html')
 

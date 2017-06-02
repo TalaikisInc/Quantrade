@@ -6,12 +6,11 @@ from django.conf import settings
 
 from os.path import join
 import urllib.request, urllib.error, urllib.parse
-from social.pipeline.partial import partial
-#from social.pipeline.user import USER_FIELDS
-from social.backends.google import GoogleOAuth2
-from social.backends.facebook import FacebookOAuth2
-from social.backends.twitter import TwitterOAuth
-from social.exceptions import (AuthException, AuthFailed, AuthCanceled, \
+from social_core.pipeline.partial import partial
+from social_core.backends.google import GoogleOAuth2
+from social_core.backends.facebook import FacebookOAuth2
+from social_core.backends.twitter import TwitterOAuth
+from social_core.exceptions import (AuthException, AuthFailed, AuthCanceled, \
         AuthUnknownError, AuthTokenError, AuthMissingParameter, AuthStateMissing, \
         AuthStateForbidden, AuthTokenRevoked, AuthForbidden, \
         AuthUnreachableProvider, InvalidEmail, AuthAlreadyAssociated)
@@ -19,6 +18,7 @@ from social.exceptions import (AuthException, AuthFailed, AuthCanceled, \
 from .models import QtraUser
 from .views import acquire_email, login_error
 
+# TODO refactor, this is intiail version it seems
 
 def get_avatar(backend, user, response, *args, **kwargs):
     try:
@@ -185,10 +185,11 @@ def get_avatar(backend, user, response, *args, **kwargs):
 def redirect_if_no_refresh_token(backend, response, social, *args, **kwargs):
     if backend.name == 'google-oauth2' and social and \
        response.get('refresh_token') is None and \
-       social.extra_data.get('refresh_token') is None:
+       social_core.extra_data.get('refresh_token') is None:
         return redirect('/login/google-oauth2?approval_prompt=force')
 
 
+# TODO, but actually not intended
 def SendVerificationEmail(strategy, backend, code):
     signature = signing.dumps({"session_key": strategy.session.session_key, "email": code.email},
                               key=settings.EMAIL_SECRET_KEY)

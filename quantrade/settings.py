@@ -1,4 +1,4 @@
-from os.path import (join, dirname, isdir)
+from os.path import (join, dirname)
 from os import environ
 from datetime import datetime
 import logging
@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from django.utils.translation import ugettext_lazy as T
 from django.template.defaultfilters import slugify
 
+
 BASE_DIR = dirname(dirname(__file__))
 load_dotenv(join(BASE_DIR, '.env'))
 
@@ -17,9 +18,6 @@ VAGRANT = int(environ.get("VAGRANT"))
 
 TEMPLATE_NAME = environ.get("TEMPLATE_NAME")
 
-#TODO remove with uwsgi
-WORKERS = 3
-API_WORKERS = 3
 FOLDER = 'quantrade'
 MEDIA_ROOT = join(BASE_DIR, "uploads")
 STATIC_ROOT = join(BASE_DIR, "static")
@@ -56,10 +54,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.humanize',
     'ckeditor',
-    'oauth2_provider',
     'django.contrib.sites',
     'django.contrib.flatpages',
-    'social.apps.django_app.default',
+    'social_django',
     'collector',
     'collector.templatetags',
 ]
@@ -69,9 +66,11 @@ LOGOUT_URL = 'logout'
 LOGIN_REDIRECT_URL = 'settings'
 SOCIAL_AUTH_LOGIN_ERROR_URL = '/login_error/'
 SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/members/'
-SOCIAL_AUTH_RAISE_EXCEPTIONS = False #needed for templating exceptions
+SOCIAL_AUTH_RAISE_EXCEPTIONS = True
 SOCIAL_AUTH_SLUGIFY_USERNAMES = True
 SOCIAL_AUTH_SESSION_EXPIRATION = False
+SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = ['username', 'first_name', 'email']
+SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
 
 if not DEV_ENV:
     SOCIAL_AUTH_FORCE_POST_DISCONNECT = True
@@ -107,35 +106,35 @@ SOCIAL_AUTH_LINKEDIN_OAUTH2_SECRET = environ.get("SOCIAL_AUTH_LINKEDIN_OAUTH2_SE
 SOCIAL_AUTH_LINKEDIN_OAUTH2_SCOPE = ['r_basicprofile', 'r_emailaddress', 'rw_company_admin', 'w_share']
 
 SOCIAL_AUTH_DISCONNECT_PIPELINE = (
-    'social.pipeline.disconnect.allowed_to_disconnect',
-    'social.pipeline.disconnect.get_entries',
-    'social.pipeline.disconnect.revoke_tokens',
-    'social.pipeline.disconnect.disconnect',
+    'social_core.pipeline.disconnect.allowed_to_disconnect',
+    'social_core.pipeline.disconnect.get_entries',
+    'social_core.pipeline.disconnect.revoke_tokens',
+    'social_core.pipeline.disconnect.disconnect',
 )
 
 SOCIAL_AUTH_PIPELINE = (
-    'social.pipeline.social_auth.social_details',
-    'social.pipeline.social_auth.social_uid',
-    'social.pipeline.social_auth.auth_allowed',
-    'social.pipeline.social_auth.social_user',
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.auth_allowed',
+    'social_core.pipeline.social_auth.social_user',
     'collector.social_profile.redirect_if_no_refresh_token',
-    'social.pipeline.user.get_username',
-    'social.pipeline.mail.mail_validation',
-    'social.pipeline.user.create_user',
-    'social.pipeline.social_auth.associate_by_email',  # <--- enable this one
-    'social.pipeline.social_auth.associate_user',
-    'social.pipeline.social_auth.load_extra_data',
-    'social.pipeline.user.user_details',
+    'social_core.pipeline.user.get_username',
+    #'social_core.pipeline.mail.mail_validation',
+    'social_core.pipeline.social_auth.associate_by_email',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
     'collector.social_profile.get_avatar',
 )
 
 AUTHENTICATION_BACKENDS = (
+    'social_core.backends.twitter.TwitterOAuth',
+    'social_core.backends.facebook.FacebookOAuth2',
+    'social_core.backends.google.GoogleOAuth2',
+    'social_core.backends.linkedin.LinkedinOAuth2',
     'django.contrib.auth.backends.ModelBackend',
-    'oauth2_provider.ext.rest_framework.OAuth2Authentication',
-    'social.backends.twitter.TwitterOAuth',
-    'social.backends.facebook.FacebookOAuth2',
-    'social.backends.google.GoogleOAuth2',
-    'social.backends.linkedin.LinkedinOAuth2',
 )
 
 AUTH_USER_MODEL = 'collector.QtraUser'
@@ -284,7 +283,7 @@ else:
     MYSQL_HOST = environ.get("MYSQL_HOST")
 
 MYSQL_PORT = int(environ.get("MYSQL_PORT"))
-DEBUG = DEV_ENV
+DEBUG = int(environ.get("DEBUG"))
 SHOW_DEBUG = int(environ.get("SHOW_DEBUG"))
 SINCE_WHEN = datetime(2016, 10, 1)
 
@@ -358,7 +357,7 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'ERROR',
+            'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': join(BASE_DIR, 'logs', 'django.log'),
             #'maxBytes': 1024 * 1024 * 10,  # 10Mb
@@ -369,7 +368,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'ERROR',
+            'level': 'DEBUG',
             'propagate': True,
         },
     },
@@ -383,14 +382,13 @@ MIDDLEWARE_CLASSES = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.cache.FetchFromCacheMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
+    'social_django.middleware.SocialAuthExceptionMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
      'django.middleware.common.BrokenLinkEmailsMiddleware',
     'django.contrib.flatpages.middleware.FlatpageFallbackMiddleware',
-    'social.apps.django_app.middleware.SocialAuthExceptionMiddleware',
-    'social.apps.django_app.middleware.SocialAuthExceptionMiddleware',
 ]
 
 REST_FRAMEWORK = {
@@ -424,10 +422,7 @@ SITE_ID = 3
 ROOT_URLCONF = 'quantrade.urls'
 TEMPL_DIRS = [join(BASE_DIR, "templates")]
 
-if DEV_ENV:
-    DEBUG_CONTEXT = ['django.template.context_processors.debug']
-else:
-    DEBUG_CONTEXT = []
+DEBUG_CONTEXT = ['django.template.context_processors.debug']
 
 TEMPLATES = [
     {
@@ -442,8 +437,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.messages.context_processors.messages',
                 'django.template.context_processors.i18n',
-                'social.apps.django_app.context_processors.backends',
-                'social.apps.django_app.context_processors.login_redirect',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ] + DEBUG_CONTEXT,
         },
     },

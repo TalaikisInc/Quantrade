@@ -13,7 +13,7 @@ from collector.feed import (LatestSignalsFeed, NewsFeed)
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
 
-    url(r'^oauth/', include('social.apps.django_app.urls', namespace='social')),
+    url(r'^oauth/', include('social_django.urls', namespace='social')),
 
     #translations
     url(r'^rosetta/', include('rosetta.urls')),
