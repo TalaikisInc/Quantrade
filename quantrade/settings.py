@@ -445,3 +445,29 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'quantrade.wsgi.application'
+
+CKEDITOR_CONFIGS = {
+    'default': {
+        'skin': 'moono',
+        'toolbar_Custom': [
+            {'name': 'basic', 'items': [
+                'Styles','Format','Font','FontSize' '-', 'Bold', 'Italic', 'Underline', 'Superscript',
+                'NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote', 'Table',
+                'Link', 'Unlink', 'SpellChecker',
+                'RemoveFormat', 'Source', 'CodeSnippet'
+            ]}
+        ],
+        'codeSnippet_theme': 'railscasts',
+         'codeSnippet_languages': {
+             'python': 'Python',
+             'javascript': 'JavaScript',
+             'golang': 'Golang',
+             'sql': 'SQL',
+         },
+        'toolbar': 'Custom',
+        'extraPlugins': ','.join(
+            [
+                'codesnippet',
+            ]),
+    }
+}
