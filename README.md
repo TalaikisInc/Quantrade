@@ -1,4 +1,5 @@
 # Quantrade
+[![Build Status](https://travis-ci.org/xenu256/Quantrade.svg?branch=master)](https://travis-ci.org/xenu256/Quantrade)
 
 [Quantrade](https://quantrade.co.uk) is quantitative strategies portfolio index, generating trade signals from its portfolio.
 
