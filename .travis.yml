@@ -25,7 +25,7 @@ env:
 
 install:
   - pip install -q Django==$DJANGO_VERSION
-  - pip install -q -r dev_requirements.txt
+  - travis_wait 30 pip install -r dev_requirements.txt
 
 notifications:
   email:
