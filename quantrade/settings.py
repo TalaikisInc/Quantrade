@@ -1,8 +1,9 @@
 from os.path import (join, dirname)
-from os import environ
+from os import (environ, pardir)
 from datetime import datetime
 import logging
 
+from raven import fetch_git_sha
 import psycopg2
 from dotenv import load_dotenv
 
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
     'social_django',
     'collector',
     'collector.templatetags',
+    'raven.contrib.django.raven_compat',
 ]
 
 LOGIN_URL = 'login'
@@ -71,6 +73,13 @@ SOCIAL_AUTH_SLUGIFY_USERNAMES = True
 SOCIAL_AUTH_SESSION_EXPIRATION = False
 SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = ['username', 'first_name', 'email']
 SOCIAL_AUTH_REDIRECT_IS_HTTPS = True
+
+RAVEN_CONFIG = {
+    'dsn': environ.get("RAVEN_DSN"),
+    # If you are using git, you can also automatically configure the
+    # release based on the git info.
+    #'release': fetch_git_sha(dirname(pardir)),
+}
 
 if not DEV_ENV:
     SOCIAL_AUTH_FORCE_POST_DISCONNECT = True

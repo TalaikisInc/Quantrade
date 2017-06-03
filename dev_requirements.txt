@@ -29,3 +29,4 @@ python-twitter
 arch
 hiredis
 djangorestframework
+raven
