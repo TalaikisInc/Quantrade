@@ -34,7 +34,7 @@ addons:
       - libatlas-base-dev
       - python3-dev
       - libmysqlclient-dev
-      - postgresql-devel
+      - postgresql-contrib
 
 env:
   - DJANGO_VERSION=1.11.1
