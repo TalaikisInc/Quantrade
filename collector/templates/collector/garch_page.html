@@ -1,7 +1,7 @@
 {% extends 'collector/base.html' %}
 {% load i18n %}
 
-{% block title %}{% trans "GJR-GARCH for " %}{{ symbol_slug }} {{ period.name }}{% endblock %}
+{% block title %}{% trans "GJR-GARCH for " %}{{ symbol_slug }} {{ period_slug.name }}{% endblock %}
 
 {% block header %}
   <h1>{% trans "GJR-GARCH forecast for " %}{{ symbol_slug }} {{ period_slug.name }}
