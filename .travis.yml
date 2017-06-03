@@ -24,7 +24,6 @@ addons:
     sources:
     - ubuntu-toolchain-r-test
     packages:
-      - gcc-4.5
       - gcc-4.9
       - gcc-5
       - gcc-6
@@ -34,7 +33,7 @@ addons:
       - libatlas-base-dev
       - python3-dev
       - libmysqlclient-dev
-      - postgresql-contrib
+      - postgresql-client-9.6
 
 env:
   - DJANGO_VERSION=1.11.1
