@@ -30,3 +30,4 @@ arch
 hiredis
 djangorestframework
 raven
+sanic_compress

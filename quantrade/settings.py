@@ -231,6 +231,7 @@ DIRECTIONS = (
     (3, 'A.I. 50')
 )
 
+RISK_FREE = 0.06
 SHARPE = 0.01
 MIN_TRADES = 20
 WIN_RATE = 0.5

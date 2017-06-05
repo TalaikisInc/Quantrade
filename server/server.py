@@ -4,6 +4,7 @@ from os import environ
 
 import asyncpg
 from sanic import Sanic
+from sanic_compress import Compress
 from sanic.response import (json, html)
 from sanic.blueprints import Blueprint
 from sanic.exceptions import (InvalidUsage, ServerError, NotFound)
@@ -36,9 +37,8 @@ REDIRECT_HTML = """
 """
 
 app = Sanic(__name__)
-
+Compress(app)
 DOMAIN = settings.API_HOST
-
 reloader = LiveReloader()
 reloader.start_watcher_thread()
 

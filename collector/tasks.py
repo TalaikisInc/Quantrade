@@ -25,7 +25,7 @@ from pandas import (read_pickle, to_datetime, DataFrame, concat, date_range, \
     read_csv, DatetimeIndex)
 #FIXME seaborn has deprecations
 import seaborn as sns
-
+#supress seaborn warnings
 import warnings
 warnings.simplefilter("ignore")
 
@@ -39,6 +39,7 @@ from .mysql_utils import create_symbol, mysql_connect_db #, _signals_to_mysql
 from .models import (Symbols, Brokers, Periods, Stats, Systems, QtraUser, \
     Signals, Corr, Indicator)
 from server.server import conn
+
 
 brokers = Brokers.objects.all()
 ignored_symbols = ['AI50', 'M1']
@@ -63,8 +64,6 @@ async def file_cleaner(filename):
 @lru_cache(maxsize=1024*10)
 def nonasy_read_df(filename):
     df = read_pickle(filename)
-    #make index
-    #df.index = to_datetime(df.index).to_pydatetime()
     return df
 
 
@@ -762,38 +761,48 @@ async def save_signal(user, strategy, df, i, perf, direction):
             print(colored.red("At save_signal {}".format(e)))
 
 
+async def get_prev_day(d, mo):
+    if (d > 1) & (d <= 31):
+        prev_day = [d - 1]
+    else:
+        if mo == any([1, 4, 6, 8, 9, 11]):
+            prev_day = [31]
+        elif mo == any([5, 7, 10, 12]):
+            prev_day = [30]
+        else:
+            prev_day = [28, 29]
+
+    return prev_day
+
+
+async def get_prev_mo(mo):
+    if mo == 1:
+        prev_mo = 12
+    else:
+        prev_mo = mo - 1
+
+    return prev_mo
+
+
 async def _save_signals(df, perf, strategy, user, period):
     try:
         if settings.SHOW_DEBUG:
             print("Trying to save signals for {}".format(strategy.system.title))
 
-        for i in range(0,len(df.index)):
+        for i in range(0, len(df.index)):
             now = date.today()
             ye = now.year
             mo = now.month
             d = now.day
             dow = now.weekday()
-            prev_d = []
-
-            #calculate one day before this
-            if (d >= 1) & (d < 31):
-                next_day = d + 1
-                prev_mo = mo
-            else:
-                if mo == any([1, 4, 6, 8, 9, 11]):
-                    prev_d = [31]
-                elif mo == any([5, 7, 10, 12]):
-                    prev_d = [30]
-                else:
-                    prev_d = [28, 29]
-
-                if mo == 1:
-                    prev_mo = 12
-                else:
-                    prev_mo = mo - 1
-
+            prev_day = await get_prev_day(d=d, mo=mo)
+            prev_mo = await get_prev_mo(mo=mo)
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
+            df_year = df['ts'].ix[-1].to_pydatetime().year
+            df_month = df['ts'].ix[-1].to_pydatetime().month
+            df_day = df['ts'].ix[-1].to_pydatetime().day
+            df_weekday = df['ts'].ix[-1].to_pydatetime().weekday()
 
             #save signals before sending
             if strategy.direction == 1:
@@ -807,36 +816,33 @@ async def _save_signals(df, perf, strategy, user, period):
                         print("Trying to save sell side...")
                     await save_signal(user=user, strategy=strategy, df=df, i=i, perf=perf, direction=2)
 
-            #send signal only if it is today!
-            if( ((df['ts'].ix[-1].to_pydatetime().year == ye) & (df['ts'].ix[-1].to_pydatetime().month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d)) | \
-                #for month signals
-                \
-                ((df['ts'].ix[-1].to_pydatetime().year == ye) & (df['ts'].ix[-1].to_pydatetime().month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d) & (period == 43200)) | \
-                 #for week signals
-                 \
-                 ((df['ts'].ix[-1].to_pydatetime().year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == mo) & (df['ts'].ix[-1].to_pydatetime().day == any(prev_d)) &  (df['ts'].ix[-1].to_pydatetime().weekday() == 6) & (dow == 0) & (period == 10080)) | \
-                 ((df['ts'].ix[-1].to_pydatetime().year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == prev_mo) & (df['ts'].ix[-1].to_pydatetime().day == any(prev_d)) &  (df['ts'].ix[-1].to_pydatetime().weekday() == 6) & (dow == 0) & (period == 10080)) ):
-                    print("This day when signal should be sent!")
+            if( ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d)) | \
+                    ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d) & (period == 43200)) | \
+                     ((df_year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == mo) & (df_day == any(prev_d)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) | \
+                     ((df_year == ye) &  (df_month == prev_mo) & (df_day == any(prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) ):
 
-                    #if settings.SHOW_DEBUG:
-                    print()
+                if settings.SHOW_DEBUG:
+                    print("This day when signal should be sent!")
                     print("DF year {}\n".format(df['ts'].ix[-1].to_pydatetime().year))
                     print("Now year {}\n".format(ye))
                     print("DF month {}\n".format(df['ts'].ix[-1].to_pydatetime().month))
                     print("Now month {}\n".format(mo))
                     print("DF day {}\n".format(df['ts'].ix[-1].to_pydatetime().day))
                     print("Now day {}\n".format(d))
+                    print("df weekday {}".format(df['ts'].ix[-1].to_pydatetime().weekday()))
+                    print("This weekday {}".format(dow))
+                    print()
 
-                    if strategy.direction == 1:
-                        if df.ix[i].BUY_SIDE == 1:
-                            #if settings.SHOW_DEBUG:
+                if strategy.direction == 1:
+                    if df.ix[i].BUY_SIDE == 1:
+                        if settings.SHOW_DEBUG:
                             print("Trying to send buy side...\n")
-                            await send_signal(strategy=strategy, strings=['BUY', 'longs'], df=df, i=i, user=user, direction=1)
-                    elif strategy.direction == 2:
-                        if df.ix[i].SELL_SIDE == 1:
-                            #if settings.SHOW_DEBUG:
+                        await send_signal(strategy=strategy, strings=['BUY', 'longs'], df=df, i=i, user=user, direction=1)
+                elif strategy.direction == 2:
+                    if df.ix[i].SELL_SIDE == 1:
+                        if settings.SHOW_DEBUG:
                             print("Trying to send sell side...\n")
-                            await send_signal(strategy=strategy, strings=['SELL', 'shorts'], df=df, i=i, user=user, direction=2)
+                        await send_signal(strategy=strategy, strings=['SELL', 'shorts'], df=df, i=i, user=user, direction=2)
     except Exception as e:
         print(colored.red("At _save_signals {}\n".format(e)))
 
@@ -849,11 +855,8 @@ async def mask_signals(usr, signals):
             fk_dt = datetime(2016, 10, 1)
             mask = (to_datetime(signals.index).to_pydatetime() >= fk_dt)
         else:
-            #mask = (to_datetime(signals.index).to_pydatetime() >= usr.date_joined)
-            fk_dt = settings.SINCE_WHEN
-            mask = (to_datetime(signals.index).to_pydatetime() >= fk_dt)
+            mask = (to_datetime(signals.index).to_pydatetime() >= usr.date_joined)
 
-        #signals.index = to_datetime(signals.index).to_pydatetime()
         if settings.SHOW_DEBUG:
             print("Masked signals")
             print(signals.tail())
@@ -865,7 +868,8 @@ async def mask_signals(usr, signals):
 
 async def user_signals(usr, strategies):
     try:
-        print("Processing signals for {}".format(usr))
+        if settings.SHOW_DEBUG:
+            print("Processing signals for {}".format(usr))
         if len(strategies) > 0:
             for strategy in strategies:
                 if settings.SHOW_DEBUG:
@@ -884,6 +888,7 @@ async def user_signals(usr, strategies):
                 perf = await mask_signals(usr=usr, signals=perf)
                 await _save_signals(df=signals, perf=perf, strategy=strategy, user=usr, period=strategy.period.period)
 
+                # TODO if we enable signals direct to MT4 EA
                 #for the case when signals delivered through mysql
                 #_signals_to_mysql(db=db, df=signals, p=p, user=usr, direction=1)
     except Exception as e:
@@ -894,11 +899,11 @@ def generate_signals(loop):
     users = QtraUser.objects.all()
     if settings.SHOW_DEBUG:
         print("Got users {}".format(users))
-    #db = mysql_connect_db()
 
     for broker in brokers:
-        #list of index strategies
-        print("Making signals for {}".format(broker))
+        if settings.SHOW_DEBUG:
+            print("Making signals for {}".format(broker))
+
         strategies = qindex(broker=broker)
 
         loop.run_until_complete(asyncio.gather(*[user_signals(usr=usr, strategies=strategies) for usr \
@@ -911,6 +916,7 @@ def gather_bad_file(loop, filename, path_to, list_failing):
     try:
         if settings.SHOW_DEBUG:
             print("Checking {}\n".format(filename))
+
         y = datetime.now().year
         m = datetime.now().month
         d = datetime.now().day
@@ -936,9 +942,7 @@ def gather_bad_file(loop, filename, path_to, list_failing):
                 low_memory=False, buffer_lines=None, memory_map=False, \
                 float_precision=None)
 
-            #make index
             df.sort_index(axis=0, ascending=True, inplace=True)
-            #df.index = to_datetime(df.index).to_pydatetime()
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
             df.index.name = "DATE_TIME"
@@ -953,8 +957,8 @@ def gather_bad_file(loop, filename, path_to, list_failing):
                             df['ts'].ix[-1].to_pydatetime().day )])
 
     except Exception as e:
-        #if settings.SHOW_DEBUG:
-        print("At gather_bad_file {}".format(e))
+        if settings.SHOW_DEBUG:
+            print("At gather_bad_file {}".format(e))
         try:
             list_failing.append([filename, "DOW: {}".format(dow), "Day: {}".format(d), \
                 "Day from DataFrame: {}\n".format(df['ts'].ix[-1].to_pydatetime().day)])
@@ -984,7 +988,6 @@ def clean_failed_file(path_to, file_name):
             print("Deleting: {}\n".format(file_name[0]))
             remove(join(path_to, file_name[0]))
     except Exception as e:
-        #if settings.SHOW_DEBUG:
         print("At deleting: {}\n".format(e))
 
 
@@ -1044,8 +1047,8 @@ async def update_stats(broker, symbol, period, system, direction, stats):
         s.bh_sortino = stats['bh_sortino']
         s.save()
 
-        #if settings.SHOW_DEBUG:
-        print("Updated stats for {}\n".format(symbol))
+        if settings.SHOW_DEBUG:
+            print("Updated stats for {}\n".format(symbol))
     except Exception as e:
         print(colored.red("At update stats {0} with {1} {2}".format(e, symbol, system)))
 
@@ -1095,7 +1098,7 @@ async def lpm(returns, threshold, order):
 
 async def sortino_ratio(returns, target=0):
     expected_return = returns.mean()
-    risk_free = 0.06
+    risk_free = settings.RISK_FREE
     return (expected_return - risk_free) / sqrt(await lpm(returns, target, 2))
 
 
