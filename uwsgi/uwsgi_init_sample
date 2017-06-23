@@ -1,0 +1,7 @@
+description "uWSGI Emperor Starter"
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+
+exec /bin/bash /home/entreprnrnws/uwsgi/uwsgi.sh

@@ -890,7 +890,7 @@ async def user_signals(usr, strategies):
 
                 # TODO if we enable signals direct to MT4 EA
                 #for the case when signals delivered through mysql
-                #_signals_to_mysql(db=db, df=signals, p=p, user=usr, direction=1)
+                #_signals_to_mysql(db_obj=db, data_frame=signals, portfolio=p, user=usr, direction=1)
     except Exception as e:
         print(colored.red("At user_signals {}".format(e)))
 

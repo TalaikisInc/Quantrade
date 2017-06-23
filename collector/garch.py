@@ -95,7 +95,7 @@ async def gtdb(filename):
 
             await save_garch(broker=broker, symbol=symbol, period=period, change=change)
     except Exception as e:
-        print(colored.red("At gtdb {}".format(e)))
+        print(colored.red("At garch gtdb {}".format(e)))
 
 
 def clean_garch():

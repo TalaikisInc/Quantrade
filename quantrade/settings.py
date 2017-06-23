@@ -31,6 +31,7 @@ else:
 STATICFILES_DIRS = []
 MEDIA_URL = '/'
 STATIC_URL = '/static/'
+USE_MYSQL_DATA = False
 
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',

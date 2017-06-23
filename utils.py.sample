@@ -61,7 +61,7 @@ def strategy_processor(loop):
     STRATEGIES = (
         #name, description, indicator, mean_rev, buy_threshold, sell_threshold):
         ('SM20M', 'Simple momentum.', 'SMA20', False, None, None),
-        ('SM20MR', 'Simple mean reversing.', 'SMA20', True, None, None),        
+        ('SM20MR', 'Simple mean reversing.', 'SMA20', True, None, None),
     )
 
     loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy) \
@@ -135,7 +135,7 @@ def main():
     if args.setup:
         if args.setup=='drop':
             drop_db(dbsql)
-        mysql_setup(dbsql)
+        mysql_setup(db_obj=dbsql)
         mysql_tables(dbsql)
         create_periods()
         generate_remote_files()
