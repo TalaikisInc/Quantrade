@@ -115,7 +115,7 @@ Then easy:
 
 ## History
 
-It was created as part of Project 10x. Project 10x was started several years ago in order to challenge myself and find interesting solutions for generating 10x profits (more exactly, goal is 25% per month or 1200%/year) for retail traders, that are limited in many various ways, like higher commissions, unreliable brokers, lack of knowledge what really works, etc. Although, Quantrade didn't find anything in similar order, it also found a promising concept of index of strategies.
+It was created as part of Project 10x. Project 10x was started several years ago in order to challenge myself and find interesting solutions for generating 10x profits (more exactly, goal is 25% per month or 1200%/year) for retail traders, who are limited in many various ways, like higher commissions, unreliable brokers, lack of knowledge what really works, etc. Although, Quantrade didn't find anything in similar order, it also found a promising concept of index of strategies.
 
 * 2016.10-2017.02. At first I thought people would construct their own portfolios of strategies, but after release test, that appeared too complex for users, so
 * 2017.03-2017.04 following version created indexing concept. That simplified things, but still not much.
