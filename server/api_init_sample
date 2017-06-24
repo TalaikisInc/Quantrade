@@ -1,7 +1,0 @@
-description "API"
-start on runlevel [2345]
-stop on runlevel [!2345]
-
-respawn
-
-exec /usr/bin/sudo -u www-data /home/quantrade/server/api.sh >> /home/quantrade/logs/apid.log 2>&1

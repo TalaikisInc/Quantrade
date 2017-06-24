@@ -17,7 +17,7 @@ after deciding how it will or should look when operable, and most importantly, -
 * ~~API~~
 * In/out sample.
 * Monte Carlo.
-* ~~Mobile app.~~ (dropped?)
+* Mobile app.
 * ~~MQL4 EA.~~ (dropped?)
 * Indicators & strategies inside database/ user form.
 * If above, then API enhancements.
@@ -41,13 +41,22 @@ after deciding how it will or should look when operable, and most importantly, -
 * [matplotlib](https://github.com/matplotlib/matplotlib)
 * [Plotly](https://github.com/plotly/plotly.py)
 * [python-dotenv](https://github.com/theskumar/python-dotenv)
-* [Sanic](https://github.com/channelcat/sanic)
-* [asyncpg](https://github.com/MagicStack/asyncpg)
+* ~~[Sanic](https://github.com/channelcat/sanic)~~
+* ~~[asyncpg](https://github.com/MagicStack/asyncpg)~~
 * [Quandl](https://github.com/quandl/quandl-python)
 * Redis
 * Nginx
 * [arch](https://github.com/bashtage/arch)
 * etc.
+
+## APIs
+
+* [quantrade_goapi v2](https://github.com/xenu256/quantrade_goapi)
+* [quantrade_pyapi v1 (dropped)](https://github.com/xenu256/quantrade_pyapi)
+
+## Mobile
+
+* [quanion](https://github.com/xenu256/quanion)
 
 ## Differences between open source and actual
 

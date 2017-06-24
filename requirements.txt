@@ -5,7 +5,6 @@ pandas
 psycopg2
 scipy
 uvloop
-sanic
 clint
 scikit-learn
 matplotlib
@@ -16,9 +15,6 @@ django-ckeditor
 social-auth-core
 social-auth-app-django
 google-api-python-client
-asyncpg
-aoiklivereload
-aoiklivereload
 plotly
 quandl
 seaborn
@@ -31,4 +27,3 @@ arch
 hiredis
 djangorestframework
 raven
-sanic_compress
