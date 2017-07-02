@@ -15,10 +15,10 @@ after deciding how it will or should look when operable, and most importantly, -
 ## TODO
 
 * ~~API~~
+* ~~Mobile app.~~
+* ~~MQL4 EA.~~ (dropped?)
 * In/out sample.
 * Monte Carlo.
-* Mobile app.
-* ~~MQL4 EA.~~ (dropped?)
 * Indicators & strategies inside database/ user form.
 * If above, then API enhancements.
 * Tests.

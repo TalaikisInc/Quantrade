@@ -21,6 +21,7 @@ seaborn
 uwsgi
 django-redis-cache
 Pillow
+asyncpg
 facebook-sdk
 python-twitter
 arch
