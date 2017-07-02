@@ -11,6 +11,7 @@ import logging
 import asyncio
 from functools import lru_cache
 
+import asyncpg
 from clint.textui import colored
 import matplotlib
 matplotlib.use('Agg')
@@ -38,11 +39,17 @@ from . import easywebdav
 from .mysql_utils import create_symbol, mysql_connect_db #, _signals_to_mysql
 from .models import (Symbols, Brokers, Periods, Stats, Systems, QtraUser, \
     Signals, Corr, Indicator)
-from server.server import conn
 
 
 brokers = Brokers.objects.all()
 ignored_symbols = ['AI50', 'M1']
+
+
+async def conn():
+    con = await asyncpg.connect(user=settings.DATABASE_USER,
+        password=settings.DATABASE_PASSWORD, database=settings.DATABASE_NAME,
+        host=settings.DATABASE_HOST, statement_cache_size=2000)
+    return con
 
 
 @lru_cache(maxsize=None)

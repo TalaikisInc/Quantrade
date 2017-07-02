@@ -74,7 +74,6 @@ class Brokers(AutoSlugifyOnSaveModel):
     slug = models.CharField(max_length=80, verbose_name=T("Broker slug"), blank=True, null=True)
     registration_url = models.URLField(verbose_name=T("Registration URL"), null=True, blank=True)
     affiliate_url = models.URLField(verbose_name=T("Affiliate URL"), null=True, blank=True)
-    slug = models.CharField(max_length=80, verbose_name=T("Slug"), null=True, blank=True)
 
     def __unicode__(self):
         return '%s' %(self.title)
