@@ -11,12 +11,15 @@ def mysql_connect_db():
     """
     Connection object to MySQL database.
     """
-
+    db_obj = None
     try:
         db_obj = MySQLdb.connect(host=settings.MYSQL_HOST, user=settings.MYSQL_USERNAME, \
             passwd=settings.MYSQL_PASSWORD, port=settings.MYSQL_PORT)
     except Exception as err:
         print(colored.red(err))
+
+    if db_obj is None:
+        raise ValueError("[-] Not connected to MySQL database.")
 
     return db_obj
 
@@ -271,7 +274,7 @@ def get_data(symbol, period):
 
 def get_symbols_from_datamodel():
     """
-    Get symbols from MySQL data table. First we have OHLC data, not symbols, 
+    Get symbols from MySQL data table. First we have OHLC data, not symbols,
     so we then create them from this table.
     """
 
