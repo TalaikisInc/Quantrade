@@ -1,9 +1,9 @@
 import re
 import string
 import random
-from os import (listdir, stat, remove, environ)
-from os.path import (isfile, join, getmtime)
-from math import (sqrt, isnan)
+from os import listdir, stat, remove, environ
+from os.path import isfile, join, getmtime
+from math import sqrt, isnan
 from itertools import combinations
 from datetime import (datetime, date, timedelta)
 import time
@@ -653,8 +653,8 @@ async def asy_get_df(con, broker_slug, symbol, period, system, folder, limit=Fal
             return df.last(settings.LIMIT_MONTHS)
         else:
             return df
-    except Exception as e:
-        print("At asy_get_df {}".format(e))
+    except Exception as err:
+        print(colored.red("At asy_get_df {}".format(err)))
         return DataFrame()
 
 
@@ -721,37 +721,22 @@ async def send_signal(strategy, strings, df, i, user, direction):
 
 async def update_returns(user, strategy, direction, date_time, perf):
     try:
-        if settings.SHOW_DEBUG:
-            print("Trying to update returns")
-
         signl = Signals.objects.get(user=user, broker=strategy.broker, symbol=strategy.symbol,
             period=strategy.period, system=strategy.system, direction=direction,
             date_time=date_time)
 
         df = perf.ix[date_time]
 
-        if settings.SHOW_DEBUG:
-            print("Got from db {}".format(signl))
-            print("Got this for performance {}".format(df))
-            print()
-
         if direction == 1:
-            #if settings.SHOW_DEBUG:
-                #print(df.shift(-1).ix[i].LONG_PL)
-            #signl.returns = float(df.shift(-1).ix[i].LONG_PL)
             signl.returns = float(df.LONG_PL)
             signl.save()
-            if settings.SHOW_DEBUG:
-                print("Updated for result then: {0} {1}.".format(df.ix[i].name, df.ix[i].LONG_PL))
+            print(colored.green("Updated signal result"))
         elif direction == 2:
-            #if settings.SHOW_DEBUG:
-                #print(df.shift(-1).ix[i].SHORT_PL)
             signl.returns = float(df.SHORT_PL)
             signl.save()
-            if settings.SHOW_DEBUG:
-                print("Updated for result then: {0} {1}.".format(df.ix[i].name, df.ix[i].SHORT_PL))
-    except Exception as e:
-        print(colored.red("At update_returns {}\n".format(e)))
+            print(colored.green("Updated signal result"))
+    except Exception as err:
+        print(colored.red("At update_returns {}\n".format(err)))
 
 
 async def save_signal(user, strategy, df, i, perf, direction):
@@ -825,7 +810,7 @@ async def _save_signals(df, perf, strategy, user, period):
 
             if( ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d)) | \
                     ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d) & (period == 43200)) | \
-                     ((df_year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == mo) & (df_day == any(prev_d)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) | \
+                     ((df_year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == mo) & (df_day == any(prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) | \
                      ((df_year == ye) &  (df_month == prev_mo) & (df_day == any(prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) ):
 
                 if settings.SHOW_DEBUG:
@@ -850,25 +835,25 @@ async def _save_signals(df, perf, strategy, user, period):
                         if settings.SHOW_DEBUG:
                             print("Trying to send sell side...\n")
                         await send_signal(strategy=strategy, strings=['SELL', 'shorts'], df=df, i=i, user=user, direction=2)
-    except Exception as e:
-        print(colored.red("At _save_signals {}\n".format(e)))
+    except Exception as err:
+        print(colored.red("At _save_signals {}\n".format(err)))
 
 
 async def mask_signals(usr, signals):
     try:
         if usr.username == settings.MACHINE_USERNAME:
-            if settings.SHOW_DEBUG:
-                print("A.K.A. Main user")
+            #if settings.SHOW_DEBUG:
+            #print("A.K.A. Main user")
             fk_dt = datetime(2016, 10, 1)
             mask = (to_datetime(signals.index).to_pydatetime() >= fk_dt)
         else:
             mask = (to_datetime(signals.index).to_pydatetime() >= usr.date_joined)
 
-        if settings.SHOW_DEBUG:
-            print("Masked signals")
-            print(signals.tail())
-    except Exception as e:
-        print(colored.red("At mask_signals {}".format(e)))
+        #if settings.SHOW_DEBUG:
+        #print("Masked signals")
+        #print(signals.tail())
+    except Exception as err:
+        print(colored.red("At mask_signals {}".format(err)))
 
     return signals[mask]
 
@@ -898,8 +883,8 @@ async def user_signals(usr, strategies):
                 # TODO if we enable signals direct to MT4 EA
                 #for the case when signals delivered through mysql
                 #_signals_to_mysql(db_obj=db, data_frame=signals, portfolio=p, user=usr, direction=1)
-    except Exception as e:
-        print(colored.red("At user_signals {}".format(e)))
+    except Exception as err:
+        print(colored.red("At user_signals {}".format(err)))
 
 
 def generate_signals(loop):
@@ -994,8 +979,8 @@ def clean_failed_file(path_to, file_name):
         if settings.SHOW_DEBUG:
             print("Deleting: {}\n".format(file_name[0]))
             remove(join(path_to, file_name[0]))
-    except Exception as e:
-        print("At deleting: {}\n".format(e))
+    except Exception as err:
+        print("At deleting: {}\n".format(err))
 
 
 def data_checker(loop):
@@ -1063,9 +1048,9 @@ async def update_stats(broker, symbol, period, system, direction, stats):
 async def std_func(data):
     try:
         std = data.loc[data != 0].std()
-    except Exception as e:
+    except Exception as err:
         if settings.SHOW_DEBUG:
-            print("At std func {}\n".format(e))
+            print("At std func {}\n".format(err))
         std = 0
     return std
 
@@ -1965,6 +1950,7 @@ def min_variance(loop):
         #print(colored.red("At min_variance ".format(e)))
 
 
+#NOT USED anywhere, experimental
 def execute_indicator(source):
     code = compile(source, "string", "exec")
 

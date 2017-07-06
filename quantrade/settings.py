@@ -14,7 +14,9 @@ from django.template.defaultfilters import slugify
 BASE_DIR = dirname(dirname(__file__))
 load_dotenv(join(BASE_DIR, '.env'))
 
-DEV_ENV  = int(environ.get("DEV_ENV"))
+dev_env = environ.get("DEV_ENV")
+assert isinstance(dev_env, str)
+DEV_ENV  = int(dev_env)
 VAGRANT = int(environ.get("VAGRANT"))
 
 TEMPLATE_NAME = environ.get("TEMPLATE_NAME")
@@ -24,9 +26,9 @@ MEDIA_ROOT = join(BASE_DIR, "uploads")
 STATIC_ROOT = join(BASE_DIR, "static")
 
 if DEV_ENV:
-    BASE_URL = 'http://127.0.0.1:8001/'
+    BASE_URL = environ.get("DEV_BASE_URL")
 else:
-    BASE_URL = 'https://quantrade.co.uk/'
+    BASE_URL = environ.get("BASE_URL")
 
 STATICFILES_DIRS = []
 MEDIA_URL = '/'

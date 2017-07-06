@@ -112,12 +112,13 @@ def main():
         generate_qindex(loop=loop)
         print("Generating keys...")
         generate_keys(loop=loop)
-        print("Publishing to Facebook...")
-        face_publish()
-        print("Publishing to Twitter...")
-        post_tweets()
-        heatmap_to_facebook()
-        heatmap_to_twitter()
+        if not settings.DEV_ENV:
+            print("Publishing to Facebook...")
+            face_publish()
+            print("Publishing to Twitter...")
+            post_tweets()
+            heatmap_to_facebook()
+            heatmap_to_twitter()
         print("Daily tasks: %s seconds ---" % (time.time() - start_time))
 
     if args.monthly:
