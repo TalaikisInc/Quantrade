@@ -13,8 +13,8 @@ from social_django.models import UserSocialAuth
 from social_django.utils import psa
 from social_core.pipeline.partial import partial
 
-from .models import (QtraUser, Brokers, Contacts)
-from .forms import (ContactForm, ContactFormUser, BrokerForm, EmailForm)
+from .models import QtraUser, Brokers, Contacts
+from .forms import ContactForm, ContactFormUser, BrokerForm, EmailForm
 
 
 def contact(request):
@@ -22,11 +22,13 @@ def contact(request):
 
     try:
         logged_user = QtraUser.objects.get(id=logged_user_)
-        previous_page = request.get_full_path()
     except:
         logged_user = None
+    
+    previous_page = request.get_full_path()
 
     if request.method == 'POST':
+        #if user is logged in
         if not (logged_user is None):
             # create a form instance and populate it with data from the request:
             form = ContactFormUser(request.POST)
@@ -50,7 +52,7 @@ def contact(request):
             else:
                 return render(request, 'registration/form_error.html', {'previous_page': previous_page })
         else:
-            # create a form instance and populate it with data from the request:
+            #if no user is logged in
             form = ContactForm(request.POST)
 
             if form.is_valid():
@@ -62,7 +64,8 @@ def contact(request):
 
                 #if cc_myself:
                     #recipients.append(sender)
-                msg = Contacts.objects.create(name=name, email=sender, subject=subject, message=message)
+                machine = QtraUser.objects.get(id=1)
+                msg = Contacts.objects.create(user=machine, name=name, email=sender, subject=subject, message=message)
                 msg.save()
 
                 recipients = ['talaikis.tadas@gmail.com']

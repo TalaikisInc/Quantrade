@@ -1,14 +1,14 @@
-from os.path import (join, isfile)
-from datetime import (datetime, date)
+from os.path import join, isfile
+from datetime import datetime, date
 import inspect
 from functools import lru_cache
 
 from django.utils.encoding import force_text
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import (render, redirect)
+from django.shortcuts import render, redirect
 from django.conf import settings
 from django.utils.translation import ugettext as T
-from django.http import (Http404, HttpResponseRedirect)
+from django.http import Http404, HttpResponseRedirect
 from django.core.urlresolvers import reverse
 from django.template.defaultfilters import slugify
 
@@ -18,9 +18,9 @@ from plotly import figure_factory
 from numpy import sum
 from pandas import to_datetime
 
-from .models import (QtraUser, Portfolios, Periods, Symbols, Systems, Stats,
-    Brokers, Signals, Post, Corr, GARCH)
-from .tasks import (_get_df, error_email, nonasy_read_df)
+from .models import QtraUser, Portfolios, Periods, Symbols, Systems, Stats,\
+    Brokers, Signals, Post, Corr, GARCH
+from .tasks import _get_df, error_email, nonasy_read_df
 
 systems = Systems.objects.all().order_by('title')
 periods = Periods.objects.all()
