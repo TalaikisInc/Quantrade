@@ -222,6 +222,7 @@ class Indicators(models.Model):
     title = models.CharField(max_length=20, verbose_name=T("Indicator"),db_index=True, unique=True)
     description = models.TextField(blank=True, null=True, verbose_name=T("System description"))
     slug = models.CharField(max_length=20, verbose_name=T("Indicator slug"), blank=True, null=True)
+    content = models.TextField(verbose_name=T("Indicator code"), blank=True, null=True)
 
     def __unicode__(self):
         return '%s' %(self.title)

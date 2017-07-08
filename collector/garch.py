@@ -1,10 +1,10 @@
 from os import listdir
-from os.path import (join, isfile)
-from datetime import (datetime, timedelta, date)
+from os.path import join, isfile
+from datetime import datetime, timedelta, date
 import asyncio
 from decimal import Decimal
 
-from pandas import (to_datetime, DataFrame)
+from pandas import to_datetime, DataFrame
 from arch import arch_model
 import matplotlib
 matplotlib.use("Agg")
@@ -15,8 +15,9 @@ from clint.textui import colored
 from django.conf import settings
 from django.template.defaultfilters import slugify
 
-from .models import (GARCH, Brokers, Symbols, Periods)
-from .tasks import read_df
+from .models import GARCH, Brokers, Symbols, Periods
+from .tasks import df_multi_reader, multi_filenames, df_multi_writer
+from .arctic_utils import ext_drop
 
 
 async def save_garch(broker, symbol, period, change):
@@ -26,8 +27,8 @@ async def save_garch(broker, symbol, period, change):
         g.save()
         if settings.SHOW_DEBUG:
             print(colored.green("Created GARCH change for {}".format(symbol)))
-    except Exception as e:
-        print(colored.red(e))
+    except Exception as err:
+        print(colored.red("At save_garch {}".format(err)))
 
 
 async def gtdb(filename):
@@ -41,7 +42,7 @@ async def gtdb(filename):
         period = Periods.objects.get(period=period_slug)
 
         if '1440' in period_slug:
-            df = await read_df(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -57,7 +58,7 @@ async def gtdb(filename):
 
         #weekly
         if '10080' in period_slug:
-            df = await read_df(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -77,7 +78,7 @@ async def gtdb(filename):
 
         #monthly
         if '43200' in period_slug:
-            df = await read_df(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -120,8 +121,9 @@ async def write_g(fl):
     mdpi = 72
     try:
         filename = join(settings.DATA_PATH, fl)
+        filename = ext_drop(filename=filename)
 
-        df = await read_df(filename=filename)
+        df = df_multi_reader(filename=filename)
 
         df['return'] = df['CLOSE'].pct_change().dropna()
         #df['std'] = df['return'].rolling(21).std()*(252**0.5)
@@ -159,16 +161,17 @@ async def write_g(fl):
                 dte+timedelta(days=5*30)])
             final = d.append(f)
 
-        file_name = fl.split(".mp")[0]
-        broker = str(slugify(file_name.split("==")[0])).replace('-', '_')
-        symbol = file_name.split("==")[1]
-        period = file_name.split("==")[2]
+        splt = fl.split("==")
+        broker = str(slugify(splt[0])).replace('-', '_')
+        symbol = splt[1]
+        period = splt[2].split(".")[0]
         out_filename = join(settings.DATA_PATH, 'garch', fl)
+        out_filename = ext_drop(filename=out_filename)
         ofl = "{0}=={1}=={2}.png".format(broker, symbol, period)
         out_image = join(settings.STATIC_ROOT, 'collector', 'images', 'garch', ofl)
         title = "{0} {1} GJR-GARCH forecast".format(symbol, period)
 
-        final.to_pickle(path=out_filename)
+        df_multi_writer(df=final, out_filename=out_filename)
 
         plt.figure(figsize=(int(900/mdpi), int(720/mdpi)), dpi=mdpi)
         plt.plot(final, label=title, color='r', lw=1)
@@ -176,12 +179,12 @@ async def write_g(fl):
         plt.savefig(out_image)
         plt.close()
         print(colored.green("Made GARCH for {}".format(symbol)))
-    except Exception as e:
-        print(colored.red("At write garch ".format(e)))
+    except Exception as err:
+        print(colored.red("At write garch ".format(err)))
 
 
 def garch(loop):
-    filenames = [f for f in listdir(settings.DATA_PATH) if isfile(join(settings.DATA_PATH, f))]
+    filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, ""))
 
     loop.run_until_complete(asyncio.gather(*[write_g(fl=fl) for fl \
         in filenames], return_exceptions=True

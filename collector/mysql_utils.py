@@ -151,8 +151,10 @@ def _signals_to_mysql(db_obj, data_frame, portfolio, user, direction):
 
 def create_symbol(name, broker):
     """
-    Creates ymbol.
+    Creates ymbol in MySQL.
     """
+    assert isinstance(name, str)
+    assert isinstance(broker, str)
 
     try:
         db_obj = mysql_connect_db()
@@ -160,9 +162,6 @@ def create_symbol(name, broker):
 
         query = "USE {0};".format(settings.MYSQL_DATABASE)
         cursor.execute(query)
-
-        if settings.SHOW_DEBUG:
-            print("At MySQL, broker is {}".format(broker))
 
         query = "INSERT INTO collector_symbols (id, symbol, description, spread, tick_value, \
             tick_size, margin_initial, digits, broker) VALUES (NULL, '{0}', NULL, NULL, NULL, \

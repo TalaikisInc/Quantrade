@@ -46,7 +46,7 @@ var/
 .installed.cfg
 *.egg
 utils.py
-arctic_utils.py
+strategies.py
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -113,7 +113,10 @@ ENV/
 .ropeproject
 
 #various
-datadump.json
+*.json
+*.pack
+*.hdf
+*.fth
 *.sqlite3
 *.pdf
 git_instructions.txt

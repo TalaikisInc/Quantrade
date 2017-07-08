@@ -10,12 +10,7 @@ from scipy import stats
 
 from django.conf import settings
 
-from .tasks import read_df
-
-
-async def distr_determiner(filename):
-    df = await read_df(filename=filename)
-    pass
+from .tasks import df_multi_reader
 
 
 async def mc_maker(data, params, size):

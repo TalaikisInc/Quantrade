@@ -2,9 +2,9 @@ import asyncio
 import argparse
 import time
 from os import environ, name
+
 if not name is 'nt':
     import uvloop
-
 environ["DJANGO_SETTINGS_MODULE"] = "quantrade.settings"
 import django
 django.setup()
@@ -40,7 +40,6 @@ async def each_indie(indi):
 
 
 def indicator_processor(loop):
-    # name | description | period
     INDICATORS = (
         ('SMA20', 'SMA(20).', 20),
 
@@ -62,7 +61,7 @@ def strategy_processor(loop):
     STRATEGIES = (
         #name, description, indicator, mean_rev, buy_threshold, sell_threshold):
         ('SM20M', 'Simple momentum.', 'SMA20', False, None, None),
-        ('SM20MR', 'Simple mean reversing.', 'SMA20', True, None, None),
+
     )
 
     loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy) \
@@ -72,7 +71,7 @@ def strategy_processor(loop):
 
 def main():
     if not name is 'nt':
-            asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
     loop = asyncio.get_event_loop()
 
     if args.hourly:
@@ -81,8 +80,6 @@ def main():
         generate_remote_files(loop=loop)
         print("Cheking data...")
         data_checker(loop=loop)
-        print("Creating symbols...")
-        create_symbols(loop=loop)
         print("Initial pickling...")
         data_model_csv(loop=loop)
         quandl_process(loop=loop)
@@ -93,23 +90,24 @@ def main():
         print("Signals...")
         generate_signals(loop=loop)
         print("Signal generation tasks: %s seconds ---" % (time.time() - start_time))
-        print("Processing GARCH...")
-        garch(loop=loop)
-        garch_to_db(loop=loop)
 
     if args.daily:
         dbsql = mysql_connect_db()
         start_time = time.time()
+        print("Collecting data...")
+        generate_remote_files(loop=loop)
+        print("Creating symbols...")
+        create_symbols(loop=loop)
         print("Updating symbol details...")
         symbol_data_to_postgres(dbsql=dbsql, loop=loop)
         print("Creating commissions...")
         create_commissions(loop=loop)
         print("Performance...")
         generate_performance(loop=loop)
-        print("Generating stats...")
-        generate_stats(loop=loop)
         print("Generating indexes...")
         generate_qindex(loop=loop)
+        print("Generating stats...")
+        generate_stats(loop=loop)
         print("Generating keys...")
         generate_keys(loop=loop)
         if not settings.DEV_ENV:
@@ -119,6 +117,9 @@ def main():
             post_tweets()
             heatmap_to_facebook()
             heatmap_to_twitter()
+        print("Processing GARCH...")
+        garch(loop=loop)
+        garch_to_db(loop=loop)
         print("Daily tasks: %s seconds ---" % (time.time() - start_time))
 
     if args.monthly:
@@ -136,13 +137,14 @@ def main():
         min_variance(loop=loop)
 
     if args.setup:
+        dbsql = mysql_connect_db()
         if args.setup=='drop':
-            drop_db(dbsql)
+            drop_db(db_obj=dbsql)
         mysql_setup(db_obj=dbsql)
-        mysql_tables(dbsql)
+        mysql_tables(db_obj=dbsql)
         create_periods()
-        generate_remote_files()
-        create_symbols()
+        generate_remote_files(loop=loop)
+        create_symbols(loop=loop)
 
     loop.close()
 

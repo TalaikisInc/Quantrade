@@ -20,7 +20,7 @@ from pandas import to_datetime
 
 from .models import QtraUser, Portfolios, Periods, Symbols, Systems, Stats,\
     Brokers, Signals, Post, Corr, GARCH
-from .tasks import _get_df, error_email, nonasy_read_df
+from .tasks import error_email, df_multi_reader
 
 systems = Systems.objects.all().order_by('title')
 periods = Periods.objects.all()
@@ -345,6 +345,13 @@ def get_indx_graphs(hist, hold_hist, strategy, data, mae_, system_slug, \
     return (hist_graph, graph)
 
 
+#TODO this is idiotic function, change the files to slugs instead
+@lru_cache(maxsize=None)
+def broekr_slug_to_title(broker_slug):
+    broker = Brokers.objects.get(slug=broker_slug)
+    return broker.title
+
+
 def df_maker(stats, logged_user):
     symbol_slug = stats['symbol__symbol']
     period_slug = stats['period__period']
@@ -360,9 +367,9 @@ def df_maker(stats, logged_user):
     yearly_image = stats['yearly_ret']
     portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
 
-    df = _get_df(broker_slug=broker_slug, symbol=symbol_slug, period=period_slug, \
-        system=system_slug, folder='performance', limit=settings.LIMIT_ENABLED)
-
+    in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
+        broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
+    df = df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
     df.index = to_datetime(df.index).to_pydatetime()
 
     return (symbol_slug, period_slug, system_slug, broker_slug, direction_slug, \
@@ -469,7 +476,10 @@ def IndexPageRequested(request, **kwargs):
     pages = None
     symbols = get_symbols()
     try:
-        df = _get_df(broker_slug=broker_slug, symbol=symbol_slug, period=period_slug, system=system_slug, folder='performance', limit=settings.LIMIT_ENABLED)
+        in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
+            broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
+        df = df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
+    
         strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
             stats=stats)
         hist_graph, graph = get_indx_graphs(hist=hist, hold_hist=hold_hist, \
@@ -565,8 +575,9 @@ def systems_page_ordered_full(request, **kwargs):
     period = stats['period']
     direction_slug = get_direction(stats=stats)
     symbols = get_symbols()
-    df = _get_df(broker_slug=broker_slug, symbol=symbol_slug, \
-        period=period_slug, system=system_slug, folder='performance', limit=False)
+    in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
+        broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
+    df = df_multi_reader(filename=in_file)
     strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
         stats=stats)
     portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
@@ -628,8 +639,9 @@ def systems_page_ordered(request, **kwargs):
     period = stats['period']
     direction_slug = get_direction(stats=stats)
     symbols = get_symbols()
-    df = _get_df(broker_slug=broker_slug, symbol=symbol_slug, \
-        period=period_slug, system=system_slug, folder='performance', limit=settings.LIMIT_ENABLED)
+    in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
+        broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
+    df = df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
     strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
         stats=stats)
     portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
@@ -699,51 +711,47 @@ def auto_portfolio_page(request, **kwargs):
         return HttpResponseRedirect('/')
 
     broker = Brokers.objects.get(slug=broker_slug)
-    filename = join(settings.DATA_PATH, 'portfolios', '{}_qndx.mp'.format(broker.slug))
-    if isfile(filename):
-        df = nonasy_read_df(filename=filename)
+    filename = join(settings.DATA_PATH, 'portfolios', '{}_qndx'.format(broker.slug))
+    df = df_multi_reader(filename=filename, limit=True)
 
-        lim = '108M'
-        df = df.last(lim)
+    hist = list(df['LONG_PL'].loc[df['LONG_PL'] != 0])
+    hold_hist = list(df['DIFF'].loc[df['DIFF'] != 0])
 
-        hist = list(df['LONG_PL'].loc[df['LONG_PL'] != 0])
-        hold_hist = list(df['DIFF'].loc[df['DIFF'] != 0])
+    stats = Stats.objects.get(symbol__symbol='AI50', period__period='1440', \
+        system__title='AI50', direction=1, broker=broker)
 
-        stats = Stats.objects.get(symbol__symbol='AI50', period__period='1440', \
-            system__title='AI50', direction=1, broker=broker)
+    hist_graph = hist_graph_creation(hist=hist, hold_hist=hold_hist)
 
-        hist_graph = hist_graph_creation(hist=hist, hold_hist=hold_hist)
+    margin_data = go.Scatter(x=df.index, y=df.LONG_MARGIN, mode="lines",  \
+        name=T('Margin'), line=dict(color=('rgb(205, 12, 24)'), width=2))
+    trades_data = go.Scatter(x=df.index, y=df.LONG_TRADES, mode="lines",  \
+        name=T('Trades'), line=dict(color=('rgb(205, 12, 24)'), width=2))
+    pl_data = go.Scatter(x=df.index, y=df.LONG_PL_CUMSUM, mode="lines",  \
+        name=T('Cumulative returns'), line=dict(color=('rgb(205, 12, 24)'), width=6))
+    mae_data = go.Scatter(x=df.index, y=df.LONG_MAE, mode="markers",  \
+        name=T('MAE'), line=dict(color=('rgb(115,115,115,1)'), width=4, dash='dot'))
 
-        margin_data = go.Scatter(x=df.index, y=df.LONG_MARGIN, mode="lines",  \
-            name=T('Margin'), line=dict(color=('rgb(205, 12, 24)'), width=2))
-        trades_data = go.Scatter(x=df.index, y=df.LONG_TRADES, mode="lines",  \
-            name=T('Trades'), line=dict(color=('rgb(205, 12, 24)'), width=2))
-        pl_data = go.Scatter(x=df.index, y=df.LONG_PL_CUMSUM, mode="lines",  \
-            name=T('Cumulative returns'), line=dict(color=('rgb(205, 12, 24)'), width=6))
-        mae_data = go.Scatter(x=df.index, y=df.LONG_MAE, mode="markers",  \
-            name=T('MAE'), line=dict(color=('rgb(115,115,115,1)'), width=4, dash='dot'))
+    margin_g = go.Data([margin_data], showgrid=True)
+    trades_g = go.Data([trades_data], showgrid=True)
+    main_g = go.Data([pl_data, mae_data], showgrid=True)
 
-        margin_g = go.Data([margin_data], showgrid=True)
-        trades_g = go.Data([trades_data], showgrid=True)
-        main_g = go.Data([pl_data, mae_data], showgrid=True)
+    main_layout = go.Layout(title='Autoportfolio Index 50 performance', xaxis={'title':T('Dates')}, \
+        yaxis={'title':T('$')}, font=dict(family='Courier New, \
+        monospace', size=14, color='#7f7f7f') )
+    margin_layout = go.Layout(title='Used margin over time', xaxis={'title':T('Dates')}, \
+        yaxis={'title':T('$')}, font=dict(family='Courier New, \
+        monospace', size=14, color='#7f7f7f') )
+    trades_layout = go.Layout(title='Trades over time', xaxis={'title':T('Dates')}, \
+        yaxis={'title':T('Count')}, font=dict(family='Courier New, \
+        monospace', size=14, color='#7f7f7f') )
 
-        main_layout = go.Layout(title='Autoportfolio Index 50 performance', xaxis={'title':T('Dates')}, \
-            yaxis={'title':T('$')}, font=dict(family='Courier New, \
-            monospace', size=14, color='#7f7f7f') )
-        margin_layout = go.Layout(title='Used margin over time', xaxis={'title':T('Dates')}, \
-            yaxis={'title':T('$')}, font=dict(family='Courier New, \
-            monospace', size=14, color='#7f7f7f') )
-        trades_layout = go.Layout(title='Trades over time', xaxis={'title':T('Dates')}, \
-            yaxis={'title':T('Count')}, font=dict(family='Courier New, \
-            monospace', size=14, color='#7f7f7f') )
+    margin_fig = go.Figure(data=margin_g, layout=margin_layout)
+    trades_fig = go.Figure(data=trades_g, layout=trades_layout)
+    main_fig = go.Figure(data=main_g, layout=main_layout)
 
-        margin_fig = go.Figure(data=margin_g, layout=margin_layout)
-        trades_fig = go.Figure(data=trades_g, layout=trades_layout)
-        main_fig = go.Figure(data=main_g, layout=main_layout)
-
-        margin_graph = opy.plot(margin_fig, auto_open=False, output_type='div')
-        trades_graph = opy.plot(trades_fig, auto_open=False, output_type='div')
-        graph = opy.plot(main_fig, auto_open=False, output_type='div')
+    margin_graph = opy.plot(margin_fig, auto_open=False, output_type='div')
+    trades_graph = opy.plot(trades_fig, auto_open=False, output_type='div')
+    graph = opy.plot(main_fig, auto_open=False, output_type='div')
 
     return render(request, '{}/auto_portfolio.html'.format(settings.TEMPLATE_NAME), {
             'graph': graph, 'hist_graph': hist_graph, 'stats': stats,
