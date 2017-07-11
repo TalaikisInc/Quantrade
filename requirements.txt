@@ -28,3 +28,4 @@ arch
 hiredis
 djangorestframework
 raven
+cython

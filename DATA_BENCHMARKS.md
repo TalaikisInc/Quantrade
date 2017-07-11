@@ -63,10 +63,10 @@ decimal.Decimal(str(x)
 * hourly tasks - 1446.66 s
 * daily tasks - 2601.91
 
+## HDF one store
+
+Extremely slow after 1 Gb of file size. Did't finished.
+
 ## Feather
 
 TODO, there's an issue on feather's GitHUB, doesn't support indexes.
-
-## HDF one store
-
-TODO.

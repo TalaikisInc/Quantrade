@@ -1,0 +1,38 @@
+import asyncio
+
+from collector.arctic_utils import IndicatorBase, SignalBase
+
+
+async def each_indie(indi, mc):
+    indicator = IndicatorBase(name=indi[0], description=indi[1], per=indi[2], mc=mc)
+    await indicator.starter()
+
+
+async def each_strategy(strategy, mc):
+    signal = SignalBase(name=strategy[0], description=strategy[1],
+        indicator=strategy[2], mean_rev=strategy[3],
+        buy_threshold=strategy[4], sell_threshold=strategy[5], mc=mc)
+    await signal.starter()
+
+
+def indicator_processor(loop, mc):
+    INDICATORS = (
+        ('SMA20', 'SMA(20).', 20),
+
+    )
+
+    loop.run_until_complete(asyncio.gather(*[each_indie(indi=indi, mc=mc) \
+        for indi in INDICATORS], return_exceptions=True
+    ))
+
+
+def strategy_processor(loop, mc):
+    STRATEGIES = (
+        #name, description, indicator, mean_rev, buy_threshold, sell_threshold:
+        ('SM20M', 'Simple momentum.', 'SMA20', False, None, None),
+
+    )
+
+    loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy, mc=mc) \
+        for strategy in STRATEGIES], return_exceptions=True
+    ))

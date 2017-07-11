@@ -11,18 +11,20 @@ django.setup()
 from django.conf import settings
 from django.core.mail import send_mail
 
-from collector.mysql_utils import (mysql_setup, mysql_tables, drop_db, \
-    mysql_connect_db)
-from collector.tasks import (create_periods, create_symbols, create_commissions,
-    symbol_data_to_postgres, generate_stats, generate_signals, generate_keys,
-    pickle_to_svc, make_images, generate_remote_files, generate_correlations,
-    data_checker, generate_monthly_heatmaps, quandl_process, generate_qindex,
-    process_urls_to_db, min_variance)
-from collector.facebook import (face_publish, heatmap_to_facebook)
-from collector.twitter import (post_tweets, heatmap_to_twitter)
+from collector.mysql_utils import mysql_setup, mysql_tables, drop_db, \
+    mysql_connect_db
+from collector.tasks import create_periods, create_symbols, create_commissions,\
+    symbol_data_to_postgres, generate_stats, generate_signals, generate_keys,\
+    pickle_to_svc, make_images, generate_remote_files, generate_correlations,\
+    data_checker, generate_monthly_heatmaps, quandl_process, generate_qindex,\
+    process_urls_to_db, min_variance, create_folders
+from collector.facebook import face_publish, heatmap_to_facebook
+from collector.twitter import post_tweets, heatmap_to_twitter
 from collector.garch import (garch, garch_to_db, clean_garch)
-from collector.arctic_utils import (data_model_csv, IndicatorBase, SignalBase, \
-    generate_performance)
+from collector.arctic_utils import data_model_csv, generate_performance
+from collector.mc import mc, mc_trader
+from _private.strategies_list import indicator_processor, strategy_processor
+
 
 parser = argparse.ArgumentParser(description="Quantrade tasks")
 parser.add_argument('--hourly')
@@ -31,42 +33,8 @@ parser.add_argument('--monthly')
 parser.add_argument('--csv')
 parser.add_argument('--setup')
 parser.add_argument('--minvar')
+parser.add_argument('--mc')
 args = parser.parse_args()
-
-
-async def each_indie(indi):
-    indicator = IndicatorBase(name=indi[0], description=indi[1], per=indi[2])
-    await indicator.starter()
-
-
-def indicator_processor(loop):
-    INDICATORS = (
-        ('SMA20', 'SMA(20).', 20),
-
-    )
-
-    loop.run_until_complete(asyncio.gather(*[each_indie(indi=indi) \
-        for indi in INDICATORS], return_exceptions=True
-    ))
-
-
-async def each_strategy(strategy):
-    signal = SignalBase(name=strategy[0], description=strategy[1],
-        indicator=strategy[2], mean_rev=strategy[3],
-        buy_threshold=strategy[4], sell_threshold=strategy[5])
-    await signal.starter()
-
-
-def strategy_processor(loop):
-    STRATEGIES = (
-        #name, description, indicator, mean_rev, buy_threshold, sell_threshold):
-        ('SM20M', 'Simple momentum.', 'SMA20', False, None, None),
-
-    )
-
-    loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy) \
-        for strategy in STRATEGIES], return_exceptions=True
-    ))
 
 
 def main():
@@ -143,8 +111,13 @@ def main():
         mysql_setup(db_obj=dbsql)
         mysql_tables(db_obj=dbsql)
         create_periods()
+        create_folders()
         generate_remote_files(loop=loop)
         create_symbols(loop=loop)
+    
+    if args.mc:
+        #mc(loop=loop)
+        mc_trader(loop=loop)
 
     loop.close()
 

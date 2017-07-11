@@ -74,6 +74,7 @@ def data_model_csv():
                 df = df.dropna()
 
                 filename = join(settings.DATA_PATH, "parquet", "{0}=={1}=={2}.parq".format(broker, symbol, period))
+                #CHANGE TO DF_MULTI!!!!
                 #df.to_pickle(path=filename)
                 write(filename=filename, df=df)
                 print colored.green("Done for {0} {1}.".format(symbol, period))

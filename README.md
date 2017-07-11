@@ -15,10 +15,10 @@ after deciding how it will or should look when operable, and most importantly, -
 ## TODO
 
 * ~~API~~
-* ~~Mobile app.~~
+* ~~Mobile app.~~ (in progress)
 * ~~MQL4 EA.~~ (dropped?)
 * In/out sample.
-* Monte Carlo.
+* ~~Monte Carlo~~
 * Indicators & strategies inside database/ user form.
 * If above, then API enhancements.
 * Tests.
@@ -98,10 +98,15 @@ if 'SM' in self.name:
     await self.insert(df.dropna())
 ```
 
-## Special features
+## Issues
+
+* Yahoo dropped its data and as a concequence Quandl too. Project has some (very poor in my opinion) initial try to implement
+something portfolio strategies related, but this issue prevents the intention to develop portfolio strategies further.
+
+## "Special" features
 
 * It implements some concept of "automarketing", when results for each trade and month are sent to social networks, RSS, email.
-* As always, Nginx SSL config with A level security, big names don't do that.
+* As always, Nginx SSL config with A level security, big names don't usually do that.
 
 ## How to start
 
@@ -120,3 +125,7 @@ It was created as part of Project 10x. Project 10x was started several years ago
 * 2016.10-2017.02. At first I thought people would construct their own portfolios of strategies, but after release test, that appeared too complex for users, so
 * 2017.03-2017.04 following version created indexing concept. That simplified things, but still not much.
 * ...
+
+## Limitations
+
+* Monte Carlo only works on Close values.

@@ -20,7 +20,7 @@ DEV_ENV  = int(dev_env)
 VAGRANT = int(environ.get("VAGRANT"))
 
 DATA_TYPE = environ.get("DATA_TYPE")
-valid = ["pickle", "json", "messagepack", "feather", "hdf"]
+valid = ["pickle", "json", "messagepack", "feather", "hdf", "hdfone"]
 assert any([v for v in valid if DATA_TYPE in valid])
 TEMPLATE_NAME = environ.get("TEMPLATE_NAME")
 
@@ -66,8 +66,10 @@ INSTALLED_APPS = [
     'social_django',
     'collector',
     'collector.templatetags',
-    'raven.contrib.django.raven_compat',
 ]
+
+if not DEV_ENV:
+    INSTALLED_APPS += ['raven.contrib.django.raven_compat']
 
 LOGIN_URL = 'login'
 LOGOUT_URL = 'logout'

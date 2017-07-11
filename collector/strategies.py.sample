@@ -12,10 +12,11 @@ from .tasks import df_multi_reader
 class ExportedIndicators:
     async def indicators(self, df):
         try:
-            if 'SMA' in self.name:
-                df['VALUE'] = df['CLOSE'] - df['CLOSE'].rolling(self.per, min_periods=self.per).mean()
-                df = await self.clean_df(df)
-                await self.insert(df=df)
+            if len(df.index) > 0:
+                if 'SMA' in self.name:
+                    df['VALUE'] = df['CLOSE'] - df['CLOSE'].rolling(self.per, min_periods=self.per).mean()
+                    df = await self.clean_df(df)
+                    await self.insert(df=df)
 
         except Exception as err:
             print(colored.red("Making indicator values {0}".format(err)))
@@ -24,18 +25,19 @@ class ExportedIndicators:
 class ExportedSystems:
     async def signals(self, df):
         try:
-            if settings.SHOW_DEBUG:
-                print("Working with {0} {1} {2}".format(self.symbol, self.period, self.name))
+            if len(df.index) > 0:
+                if settings.SHOW_DEBUG:
+                    print("Working with {0} {1} {2}".format(self.symbol, self.period, self.name))
 
-            if 'SMA' in self.name:
-                if self.mean_rev:
-                    df['BUY_SIDE'] = where(df['VALUE'].shift() < 0.0, 1, 0)
-                    df['SELL_SIDE'] = where(df['VALUE'].shift() > 0.0, -1, 0)
-                else:
-                    df['BUY_SIDE'] = where(df['VALUE'].shift() > 0.0, 1, 0)
-                    df['SELL_SIDE'] = where(df['VALUE'].shift() < 0.0, -1, 0)
-                df = await self.clean_df(df=df)
-                await self.insert(df.dropna())
+                if 'SMA' in self.name:
+                    if self.mean_rev:
+                        df['BUY_SIDE'] = where(df['VALUE'].shift() < 0.0, 1, 0)
+                        df['SELL_SIDE'] = where(df['VALUE'].shift() > 0.0, -1, 0)
+                    else:
+                        df['BUY_SIDE'] = where(df['VALUE'].shift() > 0.0, 1, 0)
+                        df['SELL_SIDE'] = where(df['VALUE'].shift() < 0.0, -1, 0)
+                    df = await self.clean_df(df=df)
+                    await self.insert(df.dropna())
 
         except Exception as err:
             print(colored.red("At making signals {0}".format(err)))
