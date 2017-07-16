@@ -119,4 +119,4 @@ ENV/
 *.fth
 *.sqlite3
 *.pdf
-git_instructions.txt
+*.pr2

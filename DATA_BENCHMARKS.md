@@ -42,6 +42,11 @@ Ubuntu 16.04 under Windows 10, Pentium G3220, 16 Gb RAM.
 * hourly tasks - 518.62 s, 813.87 s (after other types)
 * daily tasks - 2252.88
 
+## Pickle, protocol 2
+
+* hourly tasks - 1094.19 s
+* daily tasks - 2443.04
+
 ## Json
 
 FIXME. Conversion from float to Decimal not supported (stats part).
@@ -50,7 +55,7 @@ FIXME. Conversion from float to Decimal not supported (stats part).
 decimal.Decimal(str(x)
 ```
 
-* hourly tasks - 1289.01 s
+* hourly tasks - 1289.01 s - 2026.45 s
 * daily tasks - 2406.44 s
 
 ## Message pack
@@ -61,7 +66,8 @@ decimal.Decimal(str(x)
 ## HDF
 
 * hourly tasks - 1446.66 s
-* daily tasks - 2601.91
+* daily tasks - 2601.91 s
+
 
 ## HDF one store
 

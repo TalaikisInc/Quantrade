@@ -20,7 +20,7 @@ DEV_ENV  = int(dev_env)
 VAGRANT = int(environ.get("VAGRANT"))
 
 DATA_TYPE = environ.get("DATA_TYPE")
-valid = ["pickle", "json", "messagepack", "feather", "hdf", "hdfone"]
+valid = ["pickle", "json", "messagepack", "feather", "hdf", "hdfone", "proto2"]
 assert any([v for v in valid if DATA_TYPE in valid])
 TEMPLATE_NAME = environ.get("TEMPLATE_NAME")
 
