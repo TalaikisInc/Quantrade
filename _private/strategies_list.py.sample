@@ -3,36 +3,36 @@ import asyncio
 from collector.arctic_utils import IndicatorBase, SignalBase
 
 
-async def each_indie(indi, mc):
-    indicator = IndicatorBase(name=indi[0], description=indi[1], per=indi[2], mc=mc)
+async def each_indie(indi, mc, filenames):
+    indicator = IndicatorBase(name=indi[0], description=indi[1], per=indi[2], \
+        mc=mc, filenames=filenames)
     await indicator.starter()
 
 
-async def each_strategy(strategy, mc):
+async def each_strategy(strategy, mc, filenames):
     signal = SignalBase(name=strategy[0], description=strategy[1],
-        indicator=strategy[2], mean_rev=strategy[3],
-        buy_threshold=strategy[4], sell_threshold=strategy[5], mc=mc)
+        indicator=strategy[2], mean_rev=strategy[3], buy_threshold=strategy[4], \
+            sell_threshold=strategy[5], mc=mc, filenames=filenames)
     await signal.starter()
 
 
-def indicator_processor(loop, mc):
+def indicator_processor(loop, filenames, mc=False):
     INDICATORS = (
         ('SMA20', 'SMA(20).', 20),
 
     )
 
-    loop.run_until_complete(asyncio.gather(*[each_indie(indi=indi, mc=mc) \
+    loop.run_until_complete(asyncio.gather(*[each_indie(indi=indi, mc=mc, filenames=filenames) \
         for indi in INDICATORS], return_exceptions=True
     ))
 
 
-def strategy_processor(loop, mc):
+def strategy_processor(loop, filenames, mc=False):
     STRATEGIES = (
         #name, description, indicator, mean_rev, buy_threshold, sell_threshold:
-        ('SM20M', 'Simple momentum.', 'SMA20', False, None, None),
 
     )
 
-    loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy, mc=mc) \
+    loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy, mc=mc, filenames=filenames) \
         for strategy in STRATEGIES], return_exceptions=True
     ))

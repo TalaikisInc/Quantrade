@@ -20,13 +20,15 @@ from pandas import to_datetime
 
 from .models import QtraUser, Portfolios, Periods, Symbols, Systems, Stats,\
     Brokers, Signals, Post, Corr, GARCH
-from .tasks import error_email, df_multi_reader
+from .tasks import error_email, nonasy_df_multi_reader
 
 systems = Systems.objects.all().order_by('title')
 periods = Periods.objects.all()
 symbols = Symbols.objects.all().order_by('symbol')
 brokers = Brokers.objects.all().order_by('title')
 
+
+#TODO refactor,has many duplicates
 
 def blog(request):
     posts = Post.objects.filter().order_by('date_time').reverse()
@@ -84,7 +86,7 @@ def get_index_stats(broker_slug, symbol_slug, period_slug, system_slug, directio
             'max_dd', 'intraday_dd', 'symbol__margin_initial', \
             'broker__title', 'acc_minimum', 'total_profit', \
             'yearly', 'yearly_p', 'broker', 'symbol', 'period', 'system', \
-            'sortino', 'bh_sortino', 'heatmap', 'img', 'yearly_ret')
+            'sortino', 'bh_sortino', 'heatmap', 'img', 'yearly_ret', 'mc')
         stats_ = stats[0]
     except:
         stats = None
@@ -165,7 +167,7 @@ def _get_stats(indx):
             'max_dd', 'intraday_dd', 'symbol__margin_initial', \
             'broker__title', 'acc_minimum', 'total_profit', \
             'yearly', 'yearly_p', 'broker', 'symbol', 'period', 'system', \
-            'sortino', 'bh_sortino', 'heatmap', 'img', 'yearly_ret')
+            'sortino', 'bh_sortino', 'heatmap', 'img', 'yearly_ret', 'mc')
         pages = len(stats)
         return (stats[indx], pages)
     except Exception as e:
@@ -365,16 +367,17 @@ def df_maker(stats, logged_user):
     meta_image = stats['img']
     heat_image = stats['heatmap']
     yearly_image = stats['yearly_ret']
+    mc_image = stats['mc']
     portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
 
     in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
         broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
-    df = df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
+    df = nonasy_df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
     df.index = to_datetime(df.index).to_pydatetime()
 
     return (symbol_slug, period_slug, system_slug, broker_slug, direction_slug, \
         broker, period, symbol, system, meta_image, portfolio, df, heat_image, \
-        yearly_image)
+        yearly_image, mc_image)
 
 
 def IndexPage(request, **kwargs):
@@ -395,7 +398,7 @@ def IndexPage(request, **kwargs):
     first_page = True
 
     symbol_slug, period_slug, system_slug, broker_slug, direction_slug, broker, \
-        period, symbol, system, meta_image, portfolio, df, heat_image, yearly_image = \
+        period, symbol, system, meta_image, portfolio, df, heat_image, yearly_image, mc_image = \
         df_maker(stats=stats, logged_user=logged_user) #cached by lru
 
     if len(df) > 10:
@@ -405,7 +408,7 @@ def IndexPage(request, **kwargs):
         stats_ = _get_stats(indx=1)
         stats = stats_[0]
         symbol_slug, period_slug, system_slug, broker_slug, direction_slug, \
-            broker, period, symbol, system, meta_image, portfolio, df, heat_image, yearly_image = \
+            broker, period, symbol, system, meta_image, portfolio, df, heat_image, yearly_image, mc_image = \
             df_maker(stats=stats, logged_user=logged_user)
         strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
             stats=stats)
@@ -423,7 +426,7 @@ def IndexPage(request, **kwargs):
         'pages': pages, 'meta_image': meta_image, 'hist_graph': hist_graph, \
         'stats': stats, 'portfolio': portfolio, 'is_customer': is_customer, \
         'is_account_number': is_account_number, 'first_page': first_page, \
-        'heat_image': heat_image, 'yearly_image': yearly_image })
+        'heat_image': heat_image, 'yearly_image': yearly_image, 'mc_image': mc_image })
 
 
 def get_indx_stats(broker_slug, symbol_slug, period_slug, system_slug, direction_slug):
@@ -462,6 +465,7 @@ def IndexPageRequested(request, **kwargs):
             meta_image = stats['img']
             heat_image = stats['heatmap']
             yearly_image = stats['yearly_ret']
+            mc_image = stats['mc']
             portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
             broker = stats['broker__title']
             symbol = stats['symbol__symbol']
@@ -478,7 +482,7 @@ def IndexPageRequested(request, **kwargs):
     try:
         in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
             broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
-        df = df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
+        df = nonasy_df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
     
         strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
             stats=stats)
@@ -496,7 +500,7 @@ def IndexPageRequested(request, **kwargs):
             'pages': pages, 'hist_graph': hist_graph, 'stats': stats, \
             'portfolio': portfolio, 'is_customer': is_customer, \
             'is_account_number': is_account_number, 'first_page': first_page,
-            'heat_image': heat_image, 'yearly_image': yearly_image })
+            'heat_image': heat_image, 'yearly_image': yearly_image, 'mc_image': mc_image })
 
     except Exception as e:
         if settings.SHOW_DEBUG:
@@ -571,13 +575,14 @@ def systems_page_ordered_full(request, **kwargs):
     meta_image = stats['img']
     heat_image = stats['heatmap']
     yearly_image = stats['yearly_ret']
+    mc_image = stats['mc']
     broker = stats['broker']
     period = stats['period']
     direction_slug = get_direction(stats=stats)
     symbols = get_symbols()
     in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
         broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
-    df = df_multi_reader(filename=in_file)
+    df = nonasy_df_multi_reader(filename=in_file)
     strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
         stats=stats)
     portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
@@ -598,7 +603,7 @@ def systems_page_ordered_full(request, **kwargs):
         'direction': direction, 'direction_slug': direction_slug, 'hist_graph': hist_graph,
         'stats': stats, 'portfolio': portfolio, 'is_customer': is_customer,
         'is_account_number': is_account_number, 'first_page': first_page,
-        'full_v': True, 'yearly_image': yearly_image, 'ordered': True })
+        'full_v': True, 'yearly_image': yearly_image, 'ordered': True, 'mc_image': mc_image })
 
 
 def systems_page_ordered(request, **kwargs):
@@ -635,13 +640,14 @@ def systems_page_ordered(request, **kwargs):
     meta_image = stats['img']
     heat_image = stats['heatmap']
     yearly_image = stats['yearly_ret']
+    mc_image = stats['mc']
     broker = stats['broker']
     period = stats['period']
     direction_slug = get_direction(stats=stats)
     symbols = get_symbols()
     in_file = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(\
         broekr_slug_to_title(broker_slug=broker_slug), symbol_slug, period_slug, system_slug))
-    df = df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
+    df = nonasy_df_multi_reader(filename=in_file, limit=settings.LIMIT_ENABLED)
     strategy, mae_, direction, hist, data, hold_hist, bh_title = get_indx_data(df=df, \
         stats=stats)
     portfolio = get_index_portfolio(logged_user=logged_user, stats=stats)
@@ -662,7 +668,7 @@ def systems_page_ordered(request, **kwargs):
         'direction': direction, 'direction_slug': direction_slug, 'hist_graph': hist_graph,
         'stats': stats, 'portfolio': portfolio, 'is_customer': is_customer,
         'is_account_number': is_account_number, 'first_page': first_page,
-        'yearly_image': yearly_image, 'ordered': True, 'full_v': False })
+        'yearly_image': yearly_image, 'ordered': True, 'full_v': False, 'mc_image': mc_image })
 
 
 @login_required
@@ -712,7 +718,7 @@ def auto_portfolio_page(request, **kwargs):
 
     broker = Brokers.objects.get(slug=broker_slug)
     filename = join(settings.DATA_PATH, 'portfolios', '{}_qndx'.format(broker.slug))
-    df = df_multi_reader(filename=filename, limit=True)
+    df = nonasy_df_multi_reader(filename=filename, limit=True)
 
     hist = list(df['LONG_PL'].loc[df['LONG_PL'] != 0])
     hold_hist = list(df['DIFF'].loc[df['DIFF'] != 0])

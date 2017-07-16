@@ -47,10 +47,12 @@ ignored_symbols = ['AI50', 'M1']
 PandasDF = TypeVar('pandas.core.frame.DataFrame')
 
 
-def ext_drop(filename):
+async def ext_drop(filename: str) -> str:
     try:
         if settings.DATA_TYPE == "pickle":
             file_name = filename.replace(".mp", "")
+        if settings.DATA_TYPE == "proto2":
+            file_name = filename.replace(".pr2", "")
         if settings.DATA_TYPE == "messagepack":
             file_name = filename.replace(".pack", "")
         if settings.DATA_TYPE == "json":
@@ -73,6 +75,10 @@ def multi_filenames(path_to_history: str, csv: bool=False) -> List[str]:
             filenames = [f for f in listdir(path_to_history) \
                 if isfile(join(path_to_history, f)) & \
                 ("mp" == f.split(".")[-1])]
+        if settings.DATA_TYPE == "proto2":
+            filenames = [f for f in listdir(path_to_history) \
+                if isfile(join(path_to_history, f)) & \
+                ("pr2" == f.split(".")[-1])]
         if settings.DATA_TYPE == "messagepack":
             filenames = [f for f in listdir(path_to_history) \
                 if isfile(join(path_to_history, f)) & \
@@ -99,31 +105,40 @@ def multi_filenames(path_to_history: str, csv: bool=False) -> List[str]:
     return filenames
 
 
-def multi_remove(filename: str) -> None:
-    if settings.DATA_TYPE == "pickle":
-        f = filename + ".mp"
-        remove(f)
-    if settings.DATA_TYPE == "messagepack":
-        f = filename + ".pack"
-        remove(f)
-    if settings.DATA_TYPE == "json":
-        f = filename + ".json"
-        remove(f)
-    if settings.DATA_TYPE == "feather":
-        f = filename + ".fth"
-        remove(f)
-    if settings.DATA_TYPE == "hdf":
-        f = filename + ".hdf"
-        remove(f)
+async def multi_remove(filename: str) -> None:
+    try:
+        if settings.DATA_TYPE == "pickle":
+            f = filename + ".mp"
+            remove(f)
+        if settings.DATA_TYPE == "proto2":
+            f = filename + ".pr2"
+            remove(f)
+        if settings.DATA_TYPE == "messagepack":
+            f = filename + ".pack"
+            remove(f)
+        if settings.DATA_TYPE == "json":
+            f = filename + ".json"
+            remove(f)
+        if settings.DATA_TYPE == "feather":
+            f = filename + ".fth"
+            remove(f)
+        if settings.DATA_TYPE == "hdf":
+            f = filename + ".hdf"
+            remove(f)
+    except Exception as err:
+        print(colored.red("multi_remove {}".format(err)))
 
 
 @lru_cache(maxsize=None)
-def df_multi_reader(filename: str, limit: bool=False) -> PandasDF:
+async def df_multi_reader(filename: str, limit: bool=False) -> PandasDF:
     df = DataFrame()
 
     try:
         if settings.DATA_TYPE == "pickle":
             f = filename + ".mp"
+            df = read_pickle(f)
+        if settings.DATA_TYPE == "proto2":
+            f = filename + ".pr2"
             df = read_pickle(f)
         if settings.DATA_TYPE == "messagepack":
             f = filename + ".pack"
@@ -151,10 +166,72 @@ def df_multi_reader(filename: str, limit: bool=False) -> PandasDF:
     return df
 
 
-def df_multi_writer(df, out_filename):
+@lru_cache(maxsize=None)
+def nonasy_df_multi_reader(filename: str, limit: bool=False) -> PandasDF:
+    df = DataFrame()
+
+    try:
+        if settings.DATA_TYPE == "pickle":
+            f = filename + ".mp"
+            df = read_pickle(f)
+        if settings.DATA_TYPE == "proto2":
+            f = filename + ".pr2"
+            df = read_pickle(f)
+        if settings.DATA_TYPE == "messagepack":
+            f = filename + ".pack"
+            df = read_msgpack(f)
+        if settings.DATA_TYPE == "json":
+            f = filename + ".json"
+            df = read_json(f)
+        if settings.DATA_TYPE == "feather":
+            #TODO feather doesn't handle indexes
+            f = filename + ".fth"
+            df = read_feather(f).reset_index()
+        if settings.DATA_TYPE == "hdf":
+            f = filename + ".hdf"
+            df = read_hdf(f, key=filename)
+        if settings.DATA_TYPE == "hdfone":
+            f = join(settings.DATA_PATH, "hdfone.hdfone")
+            if isfile(f):
+                df = read_hdf(f, key=filename, mode='r')
+        
+        if limit:
+            df = df.last(settings.LIMIT_MONTHS)
+    except Exception as err:
+        print(colored.red("MultiReader {}".format(err)))
+
+    return df
+
+
+async def df_multi_writer(df, out_filename):
     try:
         if settings.DATA_TYPE == "pickle":
             df.to_pickle(out_filename + ".mp")
+        if settings.DATA_TYPE == "proto2":
+            df.to_pickle(path=out_filename + ".pr2", compression='gzip', protocol=2)
+        if settings.DATA_TYPE == "messagepack":
+            df.to_msgpack(out_filename + ".pack")
+        if settings.DATA_TYPE == "json":
+            df.to_json(out_filename + ".json")
+        if settings.DATA_TYPE == "feather":
+            df.to_feather(out_filename + ".fth")
+        if settings.DATA_TYPE == "hdf":
+            o = out_filename + ".hdf"
+            df.to_hdf(o, key=out_filename, mode="w")
+        if settings.DATA_TYPE == "hdfone":
+            o = join(settings.DATA_PATH, "hdfone.hdfone")
+            df.to_hdf(o, key=out_filename, mode="a")
+    except Exception as err:
+        print(colored.red("df_multi_writer {}".format(err)))
+
+
+#drop this over time, used by qindex
+def nonasy_df_multi_writer(df, out_filename):
+    try:
+        if settings.DATA_TYPE == "pickle":
+            df.to_pickle(out_filename + ".mp")
+        if settings.DATA_TYPE == "proto2":
+            df.to_pickle(path=out_filename + ".pr2", compression='gzip', protocol=2)
         if settings.DATA_TYPE == "messagepack":
             df.to_msgpack(out_filename + ".pack")
         if settings.DATA_TYPE == "json":
@@ -281,7 +358,7 @@ async def save_quandl_file(sym, quandl_periods):
             else:
                 data = quandl.get(sym)
             out_filename = join(settings.DATA_PATH, "quandl", "{0}=={1}".format(symbol, p[1]))
-            df_multi_writer(df=data, out_filename=out_filename)
+            await df_multi_writer(df=data, out_filename=out_filename)
     except Exception as err:
         print(colored.red("save_quandl_file {}".format(err)))
 
@@ -362,7 +439,7 @@ async def make_image(path_to, filename):
             'meta', '{0}=={1}=={2}=={3}==longs_shorts.png'.format(broker_slugified, \
             symbol, period, system))
 
-        data = df_multi_reader(filename=join(path_to, filename))
+        data = await df_multi_reader(filename=join(path_to, filename))
 
         data = data.loc[data['CLOSE'] != 0]
 
@@ -406,8 +483,8 @@ async def process_corr(subset, dates):
         f1 = join(settings.DATA_PATH, "incoming_pickled", "{0}=={1}==1440".format(s1.broker.title, s1.symbol))
         f2 = join(settings.DATA_PATH, "incoming_pickled", "{0}=={1}==1440".format(s2.broker.title, s2.symbol))
 
-        df1 = df_multi_reader(filename=f1)
-        df2 = df_multi_reader(filename=f2)
+        df1 = await df_multi_reader(filename=f1)
+        df2 = await df_multi_reader(filename=f2)
 
         data = concat([df1.DIFF, df2.DIFF], axis=1, join_axes=[DataFrame(index=dates).index]).fillna(0.0)
         data.columns = ['A', 'B']
@@ -438,10 +515,10 @@ def generate_correlations(loop):
 #not used anywhere
 async def convert_to_csv(path_to, filename):
     try:
-        filename = ext_drop(filename=filename)
+        filename = await ext_drop(filename=filename)
         out = join(path_to, 'csv', filename+'.csv')
         filename = join(path_to, filename)
-        df = df_multi_reader(filename=filename)
+        df = await df_multi_reader(filename=filename)
         df.to_csv(out)
         print("CSVed into {}\n".format(out))
     except Exception as err:
@@ -482,7 +559,7 @@ def generate_qindex(loop):
             idx = qindex(broker=broker)
             print("Got {} frames for index".format(len(idx)))
 
-            df_out = loop.run_until_complete(asyncio.gather(*[collect_idx_dfs(df=df_multi_reader(\
+            df_out = loop.run_until_complete(asyncio.gather(*[collect_idx_dfs(df=nonasy_df_multi_reader(\
                 filename=join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".\
                 format(i.broker.title, i.symbol.symbol, i.period.period, i.system.title)))) for i in idx],
                 return_exceptions=True
@@ -511,7 +588,7 @@ def generate_qindex(loop):
                     'LONG_PL_CUMSUM', 'LONG_TRADES']
 
                 out_filename = join(settings.DATA_PATH, 'portfolios', '{}_qndx'.format(broker.slug))
-                df_multi_writer(df=final, out_filename=out_filename)
+                nonasy_df_multi_writer(df=final, out_filename=out_filename)
 
                 print(colored.green("Wrote qindex at {}".format(out_filename)))
             except Exception as err:
@@ -632,7 +709,7 @@ async def qindex_heatmap(broker_slugified, symbol='AI50', period=1440, system='A
         image_filename = join(settings.STATIC_ROOT, 'collector', 'images', \
             'heatmap', '{0}=={1}=={2}=={3}=={4}.png'.format(broker_slugified, \
             symbol, period, system, direction))
-        data = df_multi_reader(filename=filename)
+        data = await df_multi_reader(filename=filename)
 
         returns = await convert_to_perc(data=data.last('108M').LONG_PL, \
             broker=str(broker_slugified), symbol='AI50', period=1440, \
@@ -705,8 +782,8 @@ async def make_heat_img(path_to, filename):
         system = spl[3].split(".")[0]
 
         file_name = join(path_to, filename)
-        file_name = ext_drop(filename=file_name)
-        df = df_multi_reader(filename=file_name)
+        file_name = await ext_drop(filename=file_name)
+        df = await df_multi_reader(filename=file_name)
 
         if len(df.index) > settings.MIN_TRADES:
             longs = await convert_to_perc(data=df.LONG_PL, broker=broker, \
@@ -964,11 +1041,11 @@ async def user_signals(usr, strategies):
                 if settings.SHOW_DEBUG:
                     print("For strategy from AI strategies {}".format(strategy.system.title))
                 
-                signals = df_multi_reader(filename=join(settings.DATA_PATH, \
+                signals = await df_multi_reader(filename=join(settings.DATA_PATH, \
                     "systems", "{0}=={1}=={2}=={3}".format(strategy.broker.title, \
                     strategy.symbol.symbol, strategy.period.period, strategy.system.title)))
                 
-                perf = df_multi_reader(filename=join(settings.DATA_PATH, \
+                perf = await df_multi_reader(filename=join(settings.DATA_PATH, \
                     "performance", "{0}=={1}=={2}=={3}".format(strategy.broker.title, \
                     strategy.symbol.symbol, strategy.period.period, strategy.system.title)))
                 
@@ -1410,7 +1487,7 @@ async def stats_process(df, d, years, broker, symbol, period, system):
 async def loop_over_strats(path_to, filename, loop):
     try:
         look_for = join(path_to, filename)
-        look_for = ext_drop(filename=look_for)
+        look_for = await ext_drop(filename=look_for)
         if settings.SHOW_DEBUG:
             print("Stats Working with {}".format(look_for))
 
@@ -1431,7 +1508,7 @@ async def loop_over_strats(path_to, filename, loop):
 
         if system:
             broker = Brokers.objects.get(title=broker_)
-            df = df_multi_reader(filename=look_for)
+            df = await df_multi_reader(filename=look_for)
 
             try:
                 years = df.index[-1].year - df.index[0].year + ((12 - df.index[0].month) + df.index[-1].month) / 12.0
@@ -1459,7 +1536,7 @@ async def generate_qindexd_stats(broker):
 
         filename = join(settings.DATA_PATH, 'portfolios', '{}_qndx'.format(broker.slug))
         print(filename)
-        df = df_multi_reader(filename=filename, limit=True)
+        df = await df_multi_reader(filename=filename, limit=True)
         print(df.tail())
 
         years = df.index[-1].year - df.index[0].year + ((12 - df.index[0].month) + df.index[-1].month) / 12.0
@@ -1671,167 +1748,167 @@ async def get_currency(currency, broker_name, period):
     if currency == 'AUD':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'AUDUSD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, filename))
         except Exception as e:
             print("At getting currency file {}\n".format(e))
             df = None
     elif currency == 'CAD':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDCAD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print(colored.red("At get_currency {0} with {1}".format(e, currency)))
             df = None
     elif currency == 'GBP':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'GBPUSD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'JPY':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDJPY', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'HUF':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDHUF', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'DKK':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDDKK', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print(e)
             df = None
     elif currency == 'NOK':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDNOK', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'NZD':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'NZDUSD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'ILS':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDILS', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'SEK':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDSEK', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except:
             df = None
     elif currency == 'TRY':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDTRY', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'RUB':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDRUB', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'PLN':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDPLN', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'CZK':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDCZK', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'CNH':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDCNH', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'THB':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDTHB', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'CNY':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDCNY', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'CHF':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDCHF', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'ZAR':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDZAR', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'SGD':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDSGD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'HKD':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDHKD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'MXN':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'USDMXN', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'EUR':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'EURUSD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
     elif currency == 'PNC':
         try:
             filename = "{0}=={1}=={2}".format(broker_name, 'GBPUSD', period)
-            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
         except Exception as e:
             print("At get_currency {0} with {1}".format(e, currency))
             df = None
@@ -2017,7 +2094,7 @@ def min_variance(loop):
     df_out, syms = [], []
 
     for i in idx:
-        df = df_multi_reader(filename=join(settings.DATA_PATH, "performance", \
+        df = nonasy_df_multi_reader(filename=join(settings.DATA_PATH, "performance", \
             "{0}=={1}=={2}=={3}".format(i.broker.title, i.symbol.symbol, \
             i.period.period, i.system.title)))
 
@@ -2085,3 +2162,4 @@ def create_folders():
     Popen("mkdir {}/data/quandl/csv".format(settings.BASE_DIR))
     Popen("mkdir {}/data/systems".format(settings.BASE_DIR))
     Popen("mkdir {}/data/systems/csv".format(settings.BASE_DIR))
+    Popen("mkdir {}/data/systems/json".format(settings.BASE_DIR))

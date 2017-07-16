@@ -86,7 +86,7 @@ async def make_initial_file(path_to, filename):
         df = await init_calcs(df=df, symbol=symbol)
 
         out_filename = join(settings.DATA_PATH, "incoming_pickled", "{0}=={1}=={2}".format(broker, symbol, period))
-        df_multi_writer(df=df, out_filename=out_filename)
+        await df_multi_writer(df=df, out_filename=out_filename)
 
         if settings.SHOW_DEBUG:
             print(colored.green("Pickled for {0} {1}.".format(symbol, period)))
@@ -107,7 +107,7 @@ def data_model_csv(loop):
 
 
 class IndicatorBase(ExportedIndicators):
-    def __init__(self, name, description, per, mc=False):
+    def __init__(self, name, description, per, filenames, mc=False):
         self.name = name
         self.description = description
         self.per = per
@@ -117,6 +117,7 @@ class IndicatorBase(ExportedIndicators):
         else:
             self.path_to_history = join(settings.DATA_PATH, "incoming_pickled")
         self.excluded_symbols = ['M1']
+        self.filenames = filenames
 
     async def create_indicator(self):
         try:
@@ -134,40 +135,32 @@ class IndicatorBase(ExportedIndicators):
 
     async def starter(self):
         await self.create_indicator()
-       
-        filenames = hdfone_filenames(folder="incoming_pickled", path_to=self.path_to_history)
 
-        #special case
-        #filenames += ['Ava Trade EU Ltd.==M1==43200', 'Ava Trade EU Ltd.==M1==10080', 'Ava Trade EU Ltd.==M1==1440']
-
-        for filename in filenames:
+        for filename in self.filenames:
             try:
+                if settings.DATA_TYPE != "hdfone":
+                    filename = await ext_drop(filename=filename)
+
                 spl = filename.split('==')
                 self.broker = spl[0]
                 self.symbol = spl[1]
                 if self.mc:
                     self.period = spl[2]
-                    self.path = spl[3].split('.')[0]
+                    self.path = spl[3]
                 else:
-                    self.period = spl[2].split('.')[0]
+                    self.period = spl[2]
 
-                if settings.DATA_TYPE != "hdfone":
-                    filename = ext_drop(filename=filename)
                 file_name = join(self.path_to_history, filename)
-                df = df_multi_reader(filename=file_name)
-                if self.mc:
-                    multi_remove(filename=file_name)
 
-                #make index
-                #df.index = to_datetime(df.index).to_pydatetime()
+                df = await df_multi_reader(filename=file_name)
+
             except Exception as err:
                 print(colored.red("IndicatorBase for filename {}".format(err)))
                 df = None
-                #self.period = spl[2]
 
-            await self.indicators(df)
+            await self.indicators(df=df, file_name=file_name)
 
-    async def insert(self, df):
+    async def insert(self, df, file_name):
         try:
             df = df.dropna()
 
@@ -178,9 +171,13 @@ class IndicatorBase(ExportedIndicators):
                 out_filename = join(settings.DATA_PATH, "indicators", \
                     "{0}=={1}=={2}=={3}".format(self.broker, self.symbol, self.period, self.name))
 
-            df_multi_writer(df=df, out_filename=out_filename)
+            await df_multi_writer(df=df, out_filename=out_filename)
+
             if settings.SHOW_DEBUG:
                 print(colored.green("Saved indicator data {} to pickle.".format(out_filename)))
+            
+            if self.mc:
+                await multi_remove(filename=file_name)
         except Exception as err:
             print(colored.red("IndicatorBase insert {}".format(err)))
             filename = join(settings.DATA_PATH, 'indicators', "{0}=={1}=={2}=={3}.mp".format(self.broker, self.symbol, self.period, self.name))
@@ -188,10 +185,11 @@ class IndicatorBase(ExportedIndicators):
 
     async def clean_df(self, df):
         try:
-            del df['HIGH']
-            del df['LOW']
-            del df['OPEN']
-            del df['VOLUME']
+            if not self.mc:
+                del df['HIGH']
+                del df['LOW']
+                del df['OPEN']
+                del df['VOLUME']
         except Exception as err:
             if settings.SHOW_DEBUG:
                 print(colored.red("IndicatorBase clean {}".format(err)))
@@ -207,7 +205,7 @@ async def special_case(path_to, period):
     for symbol in syms:
         try:
             #symbol equal system
-            df = df_multi_reader(filename=join(path_to, '{0}=={1}=={2}=={3}.mp'.format(broker, symbol, period, symbol)))
+            df = await df_multi_reader(filename=join(path_to, '{0}=={1}=={2}=={3}.mp'.format(broker, symbol, period, symbol)))
 
             bond_commission = await get_commission('30YTBOND')
             eu_commission = await get_commission('DJEUR50')
@@ -325,7 +323,7 @@ async def special_case(path_to, period):
             out_filename = join(settings.DATA_PATH, 'performance', \
                 "{0}=={1}=={2}=={3}".format(broker, symbol, period, symbol))
 
-            df_multi_writer(df=df, out_filename=out_filename)
+            await df_multi_writer(df=df, out_filename=out_filename)
             
             if settings.SHOW_DEBUG:
                 print("Saved performance {} to pickle.".format(filename))
@@ -413,7 +411,7 @@ async def clean(broker: str, symbol: str, period: str, system: str, mc: bool) ->
 async def perf_point(filename, path_to, mc):
     try:
         if settings.DATA_TYPE != "hdfone":
-            filename = ext_drop(filename=filename)
+            filename = await ext_drop(filename=filename)
 
         if settings.SHOW_DEBUG:
             print("Working with {}".format(filename))
@@ -435,9 +433,7 @@ async def perf_point(filename, path_to, mc):
 
         if (not commission is None) & (not margin is None):
             if commission > 0:
-                df = df_multi_reader(filename=join(path_to, filename))
-                if mc:
-                    multi_remove(filename=join(path_to, filename))
+                df = await df_multi_reader(filename=join(path_to, filename))
 
                 if len(df.index) > settings.MIN_TRADES:
 
@@ -484,10 +480,14 @@ async def perf_point(filename, path_to, mc):
                         out_filename = join(settings.DATA_PATH, 'performance', "{0}=={1}=={2}=={3}".format(\
                             broker, symbol, period, system))
 
-                    df_multi_writer(df=df, out_filename=out_filename)
+                    await df_multi_writer(df=df, out_filename=out_filename)
                         
                     if settings.SHOW_DEBUG:
                         print(colored.green("Saved performance {} to pickle.".format(filename)))
+                    if mc:
+                        await multi_remove(filename=join(path_to, filename))
+                else:
+                    await clean(broker=broker, symbol=symbol, period=period, system=system, mc=mc)
             else:
                 await clean(broker=broker, symbol=symbol, period=period, system=system, mc=mc)
         else:
@@ -496,16 +496,12 @@ async def perf_point(filename, path_to, mc):
         print(colored.red("At generating performance {0} with {1}".format(err, filename)))
 
 
-def generate_performance(loop, mc=False):
+def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
     """
     Doesn't implement hdfone.
     """
     if mc:
-        path_to = join(settings.DATA_PATH, 'monte_carlo', 'systems')
-        filenames = multi_filenames(path_to_history=path_to)
-    else:
-        path_to = join(settings.DATA_PATH, 'systems')
-        filenames = multi_filenames(path_to_history=path_to)
+        filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
 
     loop.run_until_complete(asyncio.gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
         for filename in filenames if 'M1' not in filename], return_exceptions=True
@@ -520,7 +516,7 @@ def generate_performance(loop, mc=False):
 
 
 class SignalBase(ExportedSystems):
-    def __init__(self, name, description, indicator, mean_rev, buy_threshold, sell_threshold, mc=False):
+    def __init__(self, name, description, indicator, mean_rev, buy_threshold, sell_threshold, filenames, mc=False):
         self.name = name
         self.indicator = Indicators.objects.get(title=indicator)
         self.description = description
@@ -533,6 +529,7 @@ class SignalBase(ExportedSystems):
         else:
             self.path_to_history = join(settings.DATA_PATH, "indicators")
         self.excluded_symbols = ['M1']
+        self.filenames = filenames
 
     async def create_system(self):
         try:
@@ -559,45 +556,45 @@ class SignalBase(ExportedSystems):
 
     async def starter(self):
         await self.create_system()
-        
-        filenames = hdfone_filenames(folder="indicators", path_to=self.path_to_history)
 
-        for filename in filenames:
+        for filename in self.filenames:
             if settings.DATA_TYPE != "hdfone":
-                filename = ext_drop(filename=filename)
+                filename = await ext_drop(filename=filename)
 
             spl = filename.split('==')
 
-            if spl[3].split('.')[0] == str(self.indicator):
-                self.broker = spl[0]
-                self.symbol = spl[1]
-                if self.mc:
-                    self.period = spl[2]
-                    self.path = spl[4]
-                else:
-                    self.period = spl[2]
+            self.broker = spl[0]
+            self.symbol = spl[1]
+            self.period = spl[2]
+            #self.system = self.name or spl[3]
 
-                file_name = join(self.path_to_history, filename)
-                df = df_multi_reader(filename=file_name)
-                if self.mc:
-                    multi_remove(filename=file_name)
+            if self.mc:
+                self.path = spl[4]
 
-                #make index
-                #df.index = to_datetime(df.index).to_pydatetime()
+            file_name = join(self.path_to_history, filename)
 
-                await self.signals(df)
+            df = await df_multi_reader(filename=file_name)
 
-    async def insert(self, df):
+            await self.signals(df=df, file_name=file_name)
+
+    async def insert(self, df, file_name):
         try:
             df = df.dropna()
 
             if self.mc:
                 out_filename = join(settings.DATA_PATH, "monte_carlo", "systems", "{0}=={1}=={2}=={3}=={4}".\
-                    format(self.broker, self.symbol, self.period, self.name, self.path) )
+                    format(self.broker, self.symbol, self.period, self.name, self.path))
             else:
                 out_filename = join(settings.DATA_PATH, "systems", "{0}=={1}=={2}=={3}".format(self.broker, \
-                    self.symbol, self.period, self.name) )
-            df_multi_writer(df=df, out_filename=out_filename)
+                    self.symbol, self.period, self.name))
+            
+            await df_multi_writer(df=df, out_filename=out_filename)
+            json_filename = join(settings.DATA_PATH, "systems", "json", "{0}=={1}=={2}=={3}.json".format(self.broker, \
+                    self.symbol, self.period, self.name))
+            df.to_json(json_filename, orient="table")
+
+            if self.mc:
+                await multi_remove(filename=file_name)
 
             if settings.SHOW_DEBUG:
                 print(colored.green("Saved system signals {} to pickle.".format(out_filename)))

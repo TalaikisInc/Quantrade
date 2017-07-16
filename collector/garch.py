@@ -33,12 +33,14 @@ async def save_garch(broker, symbol, period, change):
 
 async def gtdb(filename):
     try:
+        filename = ext_drop(filename=filename)
+
         spl = filename.split("==")
         broker_slug = spl[0]
         symbol_slug = spl[1]
         broker = Brokers.objects.get(title=broker_slug)
         symbol = Symbols.objects.get(symbol=symbol_slug)
-        period_slug = spl[2].split('.')[0]
+        period_slug = spl[2]
         period = Periods.objects.get(period=period_slug)
 
         if '1440' in period_slug:
@@ -65,11 +67,6 @@ async def gtdb(filename):
             this_week = df.ix[-6]
             next_week = df.ix[-5]
 
-            #print("This week")
-            #rint(this_week)
-            #rint("Next week")
-            #rint(next_week)
-
             change = next_week.values[0]*100 - this_week.values[0]*100
             if settings.SHOW_DEBUG:
                 print("Week change {}".format(change))
@@ -84,11 +81,6 @@ async def gtdb(filename):
 
             this_month = df.ix[-6]
             next_month = df.ix[-5]
-
-            #print("This month")
-            #print(this_month)
-            #print("Next month")
-            #print(next_month)
 
             change = next_month.values[0]*100 - this_month.values[0]*100
             if settings.SHOW_DEBUG:
@@ -109,8 +101,7 @@ def clean_garch():
 
 
 def garch_to_db(loop):
-    filenames = [f for f in listdir(join(settings.DATA_PATH, 'garch')) if \
-        isfile(join(settings.DATA_PATH, 'garch', f))]
+    filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, 'garch'))
 
     loop.run_until_complete(asyncio.gather(*[gtdb(filename=filename) for \
         filename in filenames], return_exceptions=True
@@ -120,7 +111,7 @@ def garch_to_db(loop):
 async def write_g(fl):
     mdpi = 72
     try:
-        filename = join(settings.DATA_PATH, fl)
+        filename = join(settings.DATA_PATH, "incoming_pickled", fl)
         filename = ext_drop(filename=filename)
 
         df = df_multi_reader(filename=filename)
@@ -180,11 +171,11 @@ async def write_g(fl):
         plt.close()
         print(colored.green("Made GARCH for {}".format(symbol)))
     except Exception as err:
-        print(colored.red("At write garch ".format(err)))
+        print(colored.red("At write garch {}".format(err)))
 
 
 def garch(loop):
-    filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, ""))
+    filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
 
     loop.run_until_complete(asyncio.gather(*[write_g(fl=fl) for fl \
         in filenames], return_exceptions=True

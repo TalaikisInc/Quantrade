@@ -394,6 +394,7 @@ class Stats(models.Model):
     heatmap = models.CharField(max_length=250, verbose_name=T("Heatmap URL"), default="")
     img = models.CharField(max_length=250, verbose_name=T("Strategy image URL"), default="")
     yearly_ret = models.CharField(max_length=250, verbose_name=T("Yearly returns image"), default="")
+    mc = models.CharField(max_length=250, verbose_name=T("Monte Carlo image"), default="")
 
     def __unicode__(self):
         return '%s' %(self.symbol)
