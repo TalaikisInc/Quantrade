@@ -1746,180 +1746,65 @@ def create_symbols(loop):
 async def get_currency(currency, broker_name, period):
     df = None
     if currency == 'AUD':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'AUDUSD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, filename))
-        except Exception as e:
-            print("At getting currency file {}\n".format(e))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'AUDUSD', period)
     elif currency == 'CAD':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDCAD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print(colored.red("At get_currency {0} with {1}".format(e, currency)))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDCAD', period)
     elif currency == 'GBP':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'GBPUSD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'GBPUSD', period)
     elif currency == 'JPY':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDJPY', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDJPY', period)
     elif currency == 'HUF':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDHUF', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDHUF', period)
     elif currency == 'DKK':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDDKK', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print(e)
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDDKK', period)
     elif currency == 'NOK':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDNOK', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDNOK', period)
     elif currency == 'NZD':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'NZDUSD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'NZDUSD', period)
     elif currency == 'ILS':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDILS', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDILS', period)
     elif currency == 'SEK':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDSEK', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except:
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDSEK', period)
     elif currency == 'TRY':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDTRY', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDTRY', period)
     elif currency == 'RUB':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDRUB', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDRUB', period)
     elif currency == 'PLN':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDPLN', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDPLN', period)
     elif currency == 'CZK':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDCZK', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDCZK', period)
     elif currency == 'CNH':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDCNH', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDCNH', period)
     elif currency == 'THB':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDTHB', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDTHB', period)
     elif currency == 'CNY':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDCNY', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDCNY', period)
     elif currency == 'CHF':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDCHF', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDCHF', period)
     elif currency == 'ZAR':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDZAR', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDZAR', period)
     elif currency == 'SGD':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDSGD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDSGD', period)
     elif currency == 'HKD':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDHKD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDHKD', period)
     elif currency == 'MXN':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'USDMXN', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDMXN', period)
     elif currency == 'EUR':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'EURUSD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'EURUSD', period)
     elif currency == 'PNC':
-        try:
-            filename = "{0}=={1}=={2}".format(broker_name, 'GBPUSD', period)
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
-        except Exception as e:
-            print("At get_currency {0} with {1}".format(e, currency))
-            df = None
+        filename = "{0}=={1}=={2}".format(broker_name, 'GBPUSD', period)
+    elif currency == 'CLP':
+        filename = "{0}=={1}=={2}".format(broker_name, 'USDCLP', period)
     elif currency == 'USD':
-        df = 1.0
-
-    #if not (df is None):
-        #try:
-            #df.index = to_datetime(df.index).to_pydatetime()
-        #except:
-            #pass
+        filename = None
+    
+    try:
+        if not filename is None:
+            df = df_multi_reader(filename=join(settings.DATA_PATH, "incoming_pickled", filename))
+        else:
+            df = 1.0
+    except Exception as err:
+        print("At get_currency {0} with {1}".format(err, currency))
 
     return df
 
