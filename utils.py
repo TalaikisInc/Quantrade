@@ -80,7 +80,7 @@ def main():
     if args.daily:
         dbsql = mysql_connect_db()
         start_time = time.time()
-        
+
         print("Collecting data...")
         generate_remote_files(loop=loop)
 
@@ -147,7 +147,7 @@ def main():
         create_symbols(loop=loop)
     
     if args.mc:
-        batch_size = 100
+        batch_size = 500
         #mc(loop=loop)
         """
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -159,7 +159,7 @@ def main():
         
         path_to = join(settings.DATA_PATH, "monte_carlo", "indicators")
         filenames = multi_filenames(path_to_history=path_to)
-        batches = int(len(filenames)/batch_size)+1
+        batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="s")
         """

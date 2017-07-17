@@ -500,8 +500,10 @@ def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
     """
     Doesn't implement hdfone.
     """
+    path_to = join(settings.DATA_PATH, "systems")
     if mc:
         filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
+        path_to = join(settings.DATA_PATH, "monte_carlo", "systems")
 
     loop.run_until_complete(asyncio.gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
         for filename in filenames if 'M1' not in filename], return_exceptions=True
@@ -566,16 +568,18 @@ class SignalBase(ExportedSystems):
             self.broker = spl[0]
             self.symbol = spl[1]
             self.period = spl[2]
-            #self.system = self.name or spl[3]
+            self.system = spl[3]
 
             if self.mc:
                 self.path = spl[4]
 
-            file_name = join(self.path_to_history, filename)
+            #This should be improved, highly ineffiecient!!!!
+            if self.system in self.name:
+                file_name = join(self.path_to_history, filename)
 
-            df = await df_multi_reader(filename=file_name)
+                df = await df_multi_reader(filename=file_name)
 
-            await self.signals(df=df, file_name=file_name)
+                await self.signals(df=df, file_name=file_name)
 
     async def insert(self, df, file_name):
         try:

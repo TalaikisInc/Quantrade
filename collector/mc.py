@@ -163,7 +163,6 @@ def aggregate(loop, filenames):
 
 def mc_trader(loop, batch, batch_size, filenames, t):
     filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
-    print(filenames)
 
     if t == "i":
         indicator_processor(loop=loop, mc=True, filenames=filenames)
