@@ -1,21 +1,19 @@
-import asyncio
-import time, datetime
-from os import listdir, remove
-from os.path import isfile, join
-from functools import lru_cache
+from asyncio import set_event_loop, gather, new_event_loop
+from os.path import join
+from threading import Thread
 
 from django.conf import settings
 from django.db import IntegrityError
 
-from pandas import read_csv, to_datetime, concat, DataFrame, date_range
+from pandas import read_csv, to_datetime
 from numpy import where, sum
 from clint.textui import colored
 
-from .tasks import adjustment_bureau, get_commission, clean_folder, \
-    error_email, file_cleaner, df_multi_reader, df_multi_writer, \
-    multi_filenames, ext_drop, hdfone_filenames, multi_remove
+from .tasks import adjustment_bureau, get_commission, file_cleaner, \
+    df_multi_reader, df_multi_writer, multi_filenames, ext_drop, \
+    hdfone_filenames, multi_remove, nonasy_df_multi_reader
 from .models import Indicators, Systems, Symbols
-from .strategies import ExportedIndicators, ExportedSystems
+from _private.strategies import ExportedIndicators, ExportedSystems
 
 
 async def init_calcs(df, symbol):
@@ -93,17 +91,30 @@ async def make_initial_file(path_to, filename):
     except Exception as err:
         print(colored.red("At initial {}".format(e)))
         out_filename = join(settings.DATA_PATH, "incoming_pickled", "{0}=={1}=={2}.mp".format(broker, symbol, period))
-        #await symbol_cleaner(symbol=symbol, broker=broker)
+        await symbol_cleaner(symbol=symbol, broker=broker)
         await file_cleaner(filename=out_filename)
 
 
-def data_model_csv(loop):
+def data_model_csv():
     path_to = join(settings.DATA_PATH, 'incoming')
     filenames = multi_filenames(path_to_history=path_to, csv=True)
+    cnt = len(filenames)
+    batch_size = int(cnt/settings.CPUS)
+    diff = cnt - (settings.CPUS * batch_size)
 
-    loop.run_until_complete(asyncio.gather(*[make_initial_file(path_to=path_to, \
-        filename=filename) for filename in filenames], return_exceptions=True
-    ))
+    def start_loop(loop, filenames):
+        set_event_loop(loop)
+        loop.run_until_complete(gather(*[make_initial_file(path_to=path_to, \
+            filename=filename) for filename in filenames], return_exceptions=True
+        ))
+
+    for cpu in range(settings.CPUS):
+        if (cpu+1) == settings.CPUS:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size+diff]))
+        else:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size]))
+        t.start()
+        t.join()
 
 
 class IndicatorBase(ExportedIndicators):
@@ -152,7 +163,7 @@ class IndicatorBase(ExportedIndicators):
 
                 file_name = join(self.path_to_history, filename)
 
-                df = await df_multi_reader(filename=file_name)
+                df = nonasy_df_multi_reader(filename=file_name)
 
             except Exception as err:
                 print(colored.red("IndicatorBase for filename {}".format(err)))
@@ -180,20 +191,9 @@ class IndicatorBase(ExportedIndicators):
                 await multi_remove(filename=file_name)
         except Exception as err:
             print(colored.red("IndicatorBase insert {}".format(err)))
-            filename = join(settings.DATA_PATH, 'indicators', "{0}=={1}=={2}=={3}.mp".format(self.broker, self.symbol, self.period, self.name))
+            filename = join(settings.DATA_PATH, 'indicators', "{0}=={1}=={2}=={3}.mp".\
+                format(self.broker, self.symbol, self.period, self.name))
             await file_cleaner(filename=filename)
-
-    async def clean_df(self, df):
-        try:
-            if not self.mc:
-                del df['HIGH']
-                del df['LOW']
-                del df['OPEN']
-                del df['VOLUME']
-        except Exception as err:
-            if settings.SHOW_DEBUG:
-                print(colored.red("IndicatorBase clean {}".format(err)))
-        return df
 
 
 #TODO this also requires special case for sending and svinh signals if this would appear on systems pg
@@ -505,14 +505,14 @@ def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
         filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
         path_to = join(settings.DATA_PATH, "monte_carlo", "systems")
 
-    loop.run_until_complete(asyncio.gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
+    loop.run_until_complete(gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
         for filename in filenames if 'M1' not in filename], return_exceptions=True
     ))
 
     #special cases
     #no longer used
     #periods = ['1440', '10080', '43200']
-    #loop.run_until_complete(asyncio.gather(*[special_case(path_to=path_to, period=period) \
+    #loop.run_until_complete(gather(*[special_case(path_to=path_to, period=period) \
         #for period in periods], return_exceptions=True
     #))
 
@@ -548,14 +548,6 @@ class SignalBase(ExportedSystems):
                 system.indicator=self.indicator
                 system.save()
 
-    async def clean_df(self, df):
-        try:
-            del df['VALUE']
-        except Exception as err:
-            #if settings.SHOW_DEBUG:
-            print(colored.red("Signal clean_df {}".format(err)))
-        return df
-
     async def starter(self):
         await self.create_system()
 
@@ -568,16 +560,16 @@ class SignalBase(ExportedSystems):
             self.broker = spl[0]
             self.symbol = spl[1]
             self.period = spl[2]
-            self.system = spl[3]
+            self.file_indicator = spl[3]
 
             if self.mc:
                 self.path = spl[4]
 
             #This should be improved, highly ineffiecient!!!!
-            if self.system in self.name:
+            if str(self.indicator) == self.file_indicator:
                 file_name = join(self.path_to_history, filename)
 
-                df = await df_multi_reader(filename=file_name)
+                df = nonasy_df_multi_reader(filename=file_name)
 
                 await self.signals(df=df, file_name=file_name)
 

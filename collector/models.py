@@ -266,7 +266,6 @@ class GARCH(models.Model):
 
 class Signals(models.Model):
     id = models.BigAutoField(primary_key=True)
-    user = models.ForeignKey(QtraUser, verbose_name=T("User"))
     broker = models.ForeignKey(Brokers, verbose_name=T("Broker"))
     symbol = models.ForeignKey(Symbols, verbose_name=T("Symbol"))
     system = models.ForeignKey(Systems, verbose_name=T("System"))
@@ -279,13 +278,13 @@ class Signals(models.Model):
     sent_email = models.BooleanField(default=False)
 
     def __unicode__(self):
-        return '(%s) %s' %(self.user, self.date_time)
+        return '%s' %(self.date_time)
 
     def __str__(self):
-        return '(%s) %s' %(self.user, self.date_time)
+        return '%s' %(self.date_time)
 
     class Meta:
-        unique_together = (("broker", "symbol", "period", "system", "direction", "date_time", "user"),)
+        unique_together = (("broker", "symbol", "period", "system", "direction", "date_time"),)
 
 
 class Corr(models.Model):

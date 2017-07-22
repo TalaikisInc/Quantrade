@@ -15,7 +15,6 @@ class ExportedIndicators:
             if len(df.index) > 0:
                 if 'SMA' in self.name:
                     df['VALUE'] = df['CLOSE'] - df['CLOSE'].rolling(self.per, min_periods=self.per).mean()
-                    df = await self.clean_df(df)
                     await self.insert(df=df)
 
         except Exception as err:

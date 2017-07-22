@@ -53,8 +53,7 @@ def face_publish():
     except Exception as e:
         print(colored.red("[ERROR] At Facebook API!: {0}\n".format(e)))
 
-    user = QtraUser.objects.get(username=settings.MACHINE_USERNAME)
-    signals = Signals.objects.filter(user=user, posted_to_facebook=False).exclude(returns__isnull=True)
+    signals = Signals.objects.filter(posted_to_facebook=False).exclude(returns__isnull=True)
 
     for signal in signals:
         try:

@@ -33,7 +33,7 @@ async def save_garch(broker, symbol, period, change):
 
 async def gtdb(filename):
     try:
-        filename = ext_drop(filename=filename)
+        filename = await ext_drop(filename=filename)
 
         spl = filename.split("==")
         broker_slug = spl[0]
@@ -44,7 +44,7 @@ async def gtdb(filename):
         period = Periods.objects.get(period=period_slug)
 
         if '1440' in period_slug:
-            df = df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -60,7 +60,7 @@ async def gtdb(filename):
 
         #weekly
         if '10080' in period_slug:
-            df = df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -75,7 +75,7 @@ async def gtdb(filename):
 
         #monthly
         if '43200' in period_slug:
-            df = df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -112,9 +112,9 @@ async def write_g(fl):
     mdpi = 72
     try:
         filename = join(settings.DATA_PATH, "incoming_pickled", fl)
-        filename = ext_drop(filename=filename)
+        filename = await ext_drop(filename=filename)
 
-        df = df_multi_reader(filename=filename)
+        df = await df_multi_reader(filename=filename)
 
         df['return'] = df['CLOSE'].pct_change().dropna()
         #df['std'] = df['return'].rolling(21).std()*(252**0.5)
@@ -157,12 +157,12 @@ async def write_g(fl):
         symbol = splt[1]
         period = splt[2].split(".")[0]
         out_filename = join(settings.DATA_PATH, 'garch', fl)
-        out_filename = ext_drop(filename=out_filename)
+        out_filename = await ext_drop(filename=out_filename)
         ofl = "{0}=={1}=={2}.png".format(broker, symbol, period)
         out_image = join(settings.STATIC_ROOT, 'collector', 'images', 'garch', ofl)
         title = "{0} {1} GJR-GARCH forecast".format(symbol, period)
 
-        df_multi_writer(df=final, out_filename=out_filename)
+        await df_multi_writer(df=final, out_filename=out_filename)
 
         plt.figure(figsize=(int(900/mdpi), int(720/mdpi)), dpi=mdpi)
         plt.plot(final, label=title, color='r', lw=1)

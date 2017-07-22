@@ -1,5 +1,4 @@
-import asyncio
-from os import listdir, name
+from asyncio import gather
 from os.path import join, isfile
 
 from clint.textui import colored
@@ -9,7 +8,6 @@ import matplotlib.pyplot as plt
 from clint.textui import colored
 from scipy import stats
 from pandas import DataFrame
-from numpy import zeros
 
 from django.template.defaultfilters import slugify
 from django.conf import settings
@@ -60,7 +58,7 @@ async def mc_maker(filename):
 def mc(loop):
     filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
 
-    loop.run_until_complete(asyncio.gather(*[mc_maker(filename=filename) for \
+    loop.run_until_complete(gather(*[mc_maker(filename=filename) for \
         filename in filenames], return_exceptions=True
     ))
 
@@ -156,19 +154,18 @@ async def mc_agg_point(udf, s):
 def aggregate(loop, filenames):
     udf = unique_strats(filenames=filenames)
 
-    loop.run_until_complete(asyncio.gather(*[mc_agg_point(udf=udf, s=s) for \
+    loop.run_until_complete(gather(*[mc_agg_point(udf=udf, s=s) for \
         s in range(len(udf.index))], return_exceptions=True
     ))
 
 
 def mc_trader(loop, batch, batch_size, filenames, t):
     filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
-
     if t == "i":
-        indicator_processor(loop=loop, mc=True, filenames=filenames)
+        indicator_processor(mc=True, filenames=filenames)
     if t == "s":
-        strategy_processor(loop=loop, mc=True, filenames=filenames)
+        strategy_processor(mc=True, filenames=filenames)
     if t == "p":
-        generate_performance(loop=loop, mc=True, filenames=filenames)
+        generate_performance(mc=True, filenames=filenames)
     if t == "a":
-        aggregate(loop=loop, filenames=filenames)
+        aggregate(filenames=filenames)

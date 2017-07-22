@@ -1,4 +1,7 @@
-import asyncio
+from asyncio import gather, set_event_loop, new_event_loop
+from threading import Thread
+
+from django.conf import settings
 
 from collector.arctic_utils import IndicatorBase, SignalBase
 
@@ -16,23 +19,52 @@ async def each_strategy(strategy, mc, filenames):
     await signal.starter()
 
 
-def indicator_processor(loop, filenames, mc=False):
+def indicator_processor(filenames, mc=False):
+    def start_loop(loop, filenames):
+        set_event_loop(loop)
+        loop.run_until_complete(gather(*[each_indie(indi=indi, mc=mc, filenames=filenames) \
+            for indi in INDICATORS], return_exceptions=True
+        ))
+
     INDICATORS = (
         ('SMA20', 'SMA(20).', 20),
 
     )
 
-    loop.run_until_complete(asyncio.gather(*[each_indie(indi=indi, mc=mc, filenames=filenames) \
-        for indi in INDICATORS], return_exceptions=True
-    ))
+    cnt = len(filenames)
+    batch_size = int(cnt/settings.CPUS)
+    diff = cnt - (settings.CPUS * batch_size)
+
+    for cpu in range(settings.CPUS):
+        if (cpu+1) == settings.CPUS:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size+diff]))
+        else:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size]))
+        t.start()
+        t.join()
 
 
-def strategy_processor(loop, filenames, mc=False):
+def strategy_processor(filenames, mc=False):
+    def start_loop(loop, filenames):
+        set_event_loop(loop)
+        loop.run_until_complete(gather(*[each_strategy(strategy=strategy, mc=mc, filenames=filenames) \
+            for strategy in STRATEGIES], return_exceptions=True
+        ))
+
     STRATEGIES = (
         #name, description, indicator, mean_rev, buy_threshold, sell_threshold:
+        ('SM20M', 'Simple momentum.', 'SMA20', False, None, None),
 
     )
 
-    loop.run_until_complete(asyncio.gather(*[each_strategy(strategy=strategy, mc=mc, filenames=filenames) \
-        for strategy in STRATEGIES], return_exceptions=True
-    ))
+    cnt = len(filenames)
+    batch_size = int(cnt/settings.CPUS)
+    diff = cnt - (settings.CPUS * batch_size)
+
+    for cpu in range(settings.CPUS):
+        if (cpu+1) == settings.CPUS:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size+diff]))
+        else:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size]))
+        t.start()
+        t.join()

@@ -41,9 +41,9 @@ class SymbolsAdmin(admin.ModelAdmin):
 
 
 class SignalsAdmin(admin.ModelAdmin):
-    list_display = ('user', 'date_time', 'symbol', 'returns', 'posted_to_twitter', \
+    list_display = ('date_time', 'symbol', 'returns', 'posted_to_twitter', \
         'posted_to_facebook', 'sent_email')
-    list_filter = ['user', 'symbol']
+    list_filter = ['symbol']
     search_fields = ['symbol', 'system', 'broker']
 
 

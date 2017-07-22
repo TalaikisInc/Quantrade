@@ -48,15 +48,14 @@ def signal_poster(api, signal, strings):
         else:
             returns_string = None
 
-        print("Returns string {0}. returns {1}".format(returns_string, returns))
-
         if not (returns_string is None):
             status = "{0} {1} signal ({2}) for #{3} {4} ${5}: https://quantrade.co.uk/{6}/{7}/{8}/{9}/{10}/  #trading #signals".format(signal.date_time.strftime('%d, %b %Y'), strings[0], \
                 signal.system.title, signal.symbol.symbol, returns_string, returns, \
                 signal.broker.slug, signal.symbol.symbol, signal.period.period, \
                 signal.system.title, strings[1])
 
-            media = "https://quantrade.co.uk/static/collector/images/meta/{0}=={1}=={2}=={3}=={4}.png".format(signal.broker.slug, signal.symbol.symbol, signal.period.period, signal.system.title, strings[1])
+            media = "https://quantrade.co.uk/static/collector/images/meta/{0}=={1}=={2}=={3}=={4}.png".format(\
+                signal.broker.slug, signal.symbol.symbol, signal.period.period, signal.system.title, strings[1])
 
             print("Twitter status: {0}".format(status))
             print("Media: {0}".format(media))
@@ -68,22 +67,18 @@ def signal_poster(api, signal, strings):
             else:
                 api.PostUpdate(status=status, media=None)
 
-            print("Sent tweet.")
+            print(colored.green("Sent tweet."))
             signal.posted_to_twitter = True
             signal.save()
-    except Exception as e:
-        print(colored.red("Twitter signal poster".format(e)))
+    except Exception as err:
+        print(colored.red("Twitter signal poster".format(err)))
 
 
 def post_tweets():
     try:
         api = connect()
 
-        user = QtraUser.objects.get(username=settings.MACHINE_USERNAME)
-
-        #one_day = timedelta(days=1)
-
-        signals = Signals.objects.filter(user=user, posted_to_twitter=False).exclude(returns__isnull=True)
+        signals = Signals.objects.filter(posted_to_twitter=False).exclude(returns__isnull=True)
 
         for signal in signals:
             try:

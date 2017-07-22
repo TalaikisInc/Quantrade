@@ -16,6 +16,7 @@ double check if this still holds as the best choice; 2) to choose next best meth
 * v6-8 - hdf, message pack, csv
 * v9 - pickle, 10 min
 * v10 - pickle async one-thread - 6-10 min
+* v11 async + multithread
 
 ## Test system
 
@@ -35,9 +36,20 @@ Ubuntu 16.04 under Windows 10, Pentium G3220, 16 Gb RAM.
 5) Strategies files to performance files.
 6) Performance files to stats table.
 
-## 2017-07-08, non-sync, from best to worst
+## 2017-07-22
 
-## Pickle
+## Pickle, v11, async + 6 cores, live
+
+* Hourly tasks - 740 s
+
+## 2017-07-08
+
+## Pickle, v10, live 6 cores, all tasks
+
+* hourly tasks - 280 - 310 s
+* daily tasks - 2100 - 2400 s, usual
+
+## Pickle, v9
 
 * hourly tasks - 518.62 s, 813.87 s (after other types)
 * daily tasks - 2252.88

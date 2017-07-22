@@ -1,15 +1,15 @@
-import re
-import string
+from string import ascii_uppercase, digits, ascii_lowercase
 from random import choice
 from os import listdir, stat, remove
 from os.path import isfile, join, getmtime
-from math import sqrt, isnan
+from math import sqrt
 from itertools import combinations
 from datetime import datetime, date, timedelta
-import asyncio
+from asyncio import set_event_loop, gather, new_event_loop, coroutine
 from functools import lru_cache
 from subprocess import Popen
 from typing import List, TypeVar
+from threading import Thread
 
 #not used anymore
 #import asyncpg
@@ -35,6 +35,7 @@ from django.db import IntegrityError
 from django.core.mail import send_mail
 from django.template.defaultfilters import slugify
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 
 from . import easywebdav
 from .mysql_utils import create_symbol, mysql_connect_db #, _signals_to_mysql
@@ -368,7 +369,7 @@ def quandl_process(loop):
     quandl_symbols = ["YAHOO/INDEX_VIX", "CBOE/VXV"]
     quandl_periods = [("monthly", 43200), (None, 1440), ("weekly", 10080)]
 
-    loop.run_until_complete(asyncio.gather(*[save_quandl_file(\
+    loop.run_until_complete(gather(*[save_quandl_file(\
         sym=sym, quandl_periods=quandl_periods) for sym in quandl_symbols], \
         return_exceptions=True
     ))
@@ -456,7 +457,7 @@ def make_images(loop):
     path_to = join(settings.DATA_PATH, "performance")
     filenames = hdfone_filenames(folder="performance", path_to=path_to)
 
-    loop.run_until_complete(asyncio.gather(*[make_image(path_to=path_to, \
+    loop.run_until_complete(gather(*[make_image(path_to=path_to, \
         filename=filename) for filename in filenames], \
         return_exceptions=True
     ))
@@ -506,7 +507,7 @@ def generate_correlations(loop):
     combinated = combinations(symbols_list, 2)
     dates = date_range(end=date(datetime.now().year, datetime.now().month, datetime.now().day),periods=20*252, freq='D', name='DATE_TIME', tz=None)
 
-    loop.run_until_complete(asyncio.gather(*[process_corr(subset=subset, \
+    loop.run_until_complete(gather(*[process_corr(subset=subset, \
         dates=dates) for subset in combinated], \
         return_exceptions=True
     ))
@@ -530,7 +531,7 @@ def pickle_to_svc(folder, loop):
 
     filenames = multi_filenames(path_to_history=path_to)
 
-    loop.run_until_complete(asyncio.gather(*[convert_to_csv(path_to=path_to, \
+    loop.run_until_complete(gather(*[convert_to_csv(path_to=path_to, \
         filename=filename) for filename in filenames], \
         return_exceptions=True
     ))
@@ -543,8 +544,8 @@ def qindex(broker):
             trades__gt=settings.MIN_TRADES, broker=broker, win_rate__gt=settings.WIN_RATE \
             ).exclude(system__title='AI50', avg_trade__isnull=True, avg_trade__lt=0.0, trades__isnull=True, \
             symbol__commission__isnull=True, sortino__lt=0.2).exclude(symbol__symbol='AI50').order_by('sortino').reverse()[:50]
-    except Exception as e:
-        print(" At qindex {}".format(e))
+    except Exception as err:
+        print(colored.red(" At qindex {}".format(err)))
     return stats
 
 
@@ -559,7 +560,7 @@ def generate_qindex(loop):
             idx = qindex(broker=broker)
             print("Got {} frames for index".format(len(idx)))
 
-            df_out = loop.run_until_complete(asyncio.gather(*[collect_idx_dfs(df=nonasy_df_multi_reader(\
+            df_out = loop.run_until_complete(gather(*[collect_idx_dfs(df=nonasy_df_multi_reader(\
                 filename=join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".\
                 format(i.broker.title, i.symbol.symbol, i.period.period, i.system.title)))) for i in idx],
                 return_exceptions=True
@@ -580,7 +581,6 @@ def generate_qindex(loop):
                 df = df.fillna(0.0)
                 df = df.groupby(df.columns, axis=1).sum()
                 df["LONG_PL_CUMSUM"] = df["LONG_PL_CUMSUM"].fillna(method='ffill')
-                print(df)
 
                 final = concat([df.DIFF/100.0, df.LONG_MAE/100.0, df.LONG_MFE/100.0, df.LONG_MARGIN/100.0, \
                     df.LONG_PL/100.0, df.LONG_PL_CUMSUM/100.0, df.LONG_TRADES], axis=1)
@@ -821,13 +821,13 @@ def generate_monthly_heatmaps(loop):
     path_to = join(settings.DATA_PATH, "performance")
     filenames = multi_filenames(path_to_history=path_to)
 
-    loop.run_until_complete(asyncio.gather(*[make_heat_img(\
+    loop.run_until_complete(gather(*[make_heat_img(\
         path_to=path_to, filename=filename) for filename in filenames], \
         return_exceptions=True
     ))
 
     #AI50 index heatmap
-    loop.run_until_complete(asyncio.gather(*[qindex_heatmap(broker_slugified=broker.slug) for broker in brokers],
+    loop.run_until_complete(gather(*[qindex_heatmap(broker_slugified=broker.slug) for broker in brokers],
         return_exceptions=True
     ))
 
@@ -840,7 +840,7 @@ async def expand(records):
 async def update_signal_sent_status(user, strategy, direction, df, i):
     try:
         #update that email is sent!
-        s = Signals.objects.get(user=user, broker=strategy.broker, symbol=strategy.symbol,
+        s = Signals.objects.get(broker=strategy.broker, symbol=strategy.symbol,
             system=strategy.system, period=strategy.period, direction=direction,
             date_time=df.ix[i].name)
         if settings.SHOW_DEBUG:
@@ -865,7 +865,7 @@ async def send_signal(strategy, strings, df, i, user, direction):
             direction_name = "Longs and shorts"
 
         try:
-            s = Signals.objects.filter(user=user, broker=strategy.broker,
+            s = Signals.objects.filter(broker=strategy.broker,
                 symbol=strategy.symbol, system=strategy.system, period=strategy.period,
                 direction=direction, date_time=df.ix[i].name,
                 sent_email=False).count()
@@ -876,7 +876,6 @@ async def send_signal(strategy, strings, df, i, user, direction):
         if s != 0:
             if len(str(user.email)) > 0:
                 recipients = [user.email]
-                #recipients = ['talaikis.tadas@gmail.com']
                 print("Recipinet: {}".format(recipients))
                 subject = "{0} on Quantrade Trading Signals".format(strings[0])
                 # FIXME as systems send separate signals for longs and shoerts,
@@ -898,36 +897,42 @@ async def send_signal(strategy, strings, df, i, user, direction):
         print(colored.red("At sending signal: {}\n".format(e)))
 
 
-async def update_returns(user, strategy, direction, date_time, perf):
+async def update_returns(strategy, direction, date_time, perf):
     try:
-        signl = Signals.objects.get(user=user, broker=strategy.broker, symbol=strategy.symbol,
-            period=strategy.period, system=strategy.system, direction=direction,
-            date_time=date_time)
+        try:
+            signl = Signals.objects.get(broker=strategy.broker, symbol=strategy.symbol,
+                period=strategy.period, system=strategy.system, direction=direction,
+                date_time=date_time)
+        except ObjectDoesNotExist:
+            signl = None
 
-        df = perf.ix[date_time]
+        if not signl is None:
+            df = perf.ix[date_time]
 
-        if direction == 1:
-            signl.returns = float(df.LONG_PL)
-            signl.save()
-            print(colored.green("Updated signal result"))
-        elif direction == 2:
-            signl.returns = float(df.SHORT_PL)
-            signl.save()
-            print(colored.green("Updated signal result"))
+            if direction == 1:
+                signl.returns = float(df.LONG_PL)
+                signl.save()
+                print(colored.green("Updated signal result"))
+            elif direction == 2:
+                signl.returns = float(df.SHORT_PL)
+                signl.save()
+                print(colored.green("Updated signal result"))
     except Exception as err:
         print(colored.red("At update_returns {}\n".format(err)))
 
 
-async def save_signal(user, strategy, df, i, perf, direction):
+async def save_signal(strategy, df, i, perf, direction):
     try:
-        signl = Signals.objects.create(user=user, broker=strategy.broker, symbol=strategy.symbol,
+        signl = Signals.objects.create(broker=strategy.broker, symbol=strategy.symbol,
             period=strategy.period, system=strategy.system, direction=direction,
             date_time=df.ix[i].name, returns=None)
         signl.save()
         print(colored.green("Signal saved."))
     except IntegrityError:
-        if len(perf.index) > 0:
-            await update_returns(user=user, strategy=strategy, direction=direction, date_time=df.ix[i].name, perf=perf.shift(-1))
+        if not perf is None:
+            if len(perf.index) > 0:
+                await update_returns(strategy=strategy, direction=direction, \
+                    date_time=df.ix[i].name, perf=perf.shift(-1))
     except Exception as err:
         print(colored.red("At save_signal {}".format(err)))
 
@@ -955,81 +960,132 @@ async def get_prev_mo(mo):
     return prev_mo
 
 
+async def save_signal_point(i, df, user, strategy, perf, period):
+    try:
+        now = date.today()
+        ye = now.year
+        mo = now.month
+        to_day = now.day
+        dow = now.weekday()
+        prev_day = await get_prev_day(d=to_day, mo=mo)
+        prev_mo = await get_prev_mo(mo=mo)
+        end_prev_day = [30, 31]
+        df['ts'] = df.index
+        df['ts'] = to_datetime(df['ts'])
+        df_year = df['ts'].ix[-1].to_pydatetime().year
+        df_month = df['ts'].ix[-1].to_pydatetime().month
+        df_day = df['ts'].ix[-1].to_pydatetime().day
+        df_weekday = df['ts'].ix[-1].to_pydatetime().weekday()
+
+        #save signals before sending
+        if strategy.direction == 1:
+            if df.ix[i].BUY_SIDE == 1:
+                if settings.SHOW_DEBUG:
+                    print("Trying to save buy side...")
+                await save_signal(strategy=strategy, df=df, i=i, perf=perf, direction=1)
+        elif strategy.direction == 2:
+            if df.ix[i].SELL_SIDE == 1:
+                if settings.SHOW_DEBUG:
+                    print("Trying to save sell side...")
+                await save_signal(strategy=strategy, df=df, i=i, perf=perf, direction=2)
+
+        if( ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == to_day)) | \
+                ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == to_day) & (period == 43200)) | \
+                ((df_year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == mo) & (df_day == any(prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) | \
+                ((df_year == ye) &  (df_month == prev_mo) & (df_day == any(end_prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) ):
+
+            if settings.SHOW_DEBUG:
+                print("This day when signal should be sent!")
+                print("DF year {}\n".format(df['ts'].ix[-1].to_pydatetime().year))
+                print("Now year {}\n".format(ye))
+                print("DF month {}\n".format(df['ts'].ix[-1].to_pydatetime().month))
+                print("Now month {}\n".format(mo))
+                print("DF day {}\n".format(df['ts'].ix[-1].to_pydatetime().day))
+                print("Now day {}\n".format(d))
+                print("df weekday {}".format(df['ts'].ix[-1].to_pydatetime().weekday()))
+                print("This weekday {}".format(dow))
+                print()
+
+            if strategy.direction == 1:
+                if df.ix[i].BUY_SIDE == 1:
+                    if settings.SHOW_DEBUG:
+                        print("Trying to send buy side...\n")
+                    await send_signal(strategy=strategy, strings=['BUY', 'longs'], df=df, i=i, user=user, direction=1)
+            elif strategy.direction == 2:
+                if df.ix[i].SELL_SIDE == 1:
+                    if settings.SHOW_DEBUG:
+                        print("Trying to send sell side...\n")
+                    await send_signal(strategy=strategy, strings=['SELL', 'shorts'], df=df, i=i, user=user, direction=2)
+    except Exception as err:
+        print(colored.red("save_signal_point {}\n".format(err)))
+
+
 async def _save_signals(df, perf, strategy, user, period):
     try:
         if settings.SHOW_DEBUG:
             print("Trying to save signals for {}".format(strategy.system.title))
-
-        for i in range(len(df.index)):
-            now = date.today()
-            ye = now.year
-            mo = now.month
-            d = now.day
-            dow = now.weekday()
-            prev_day = await get_prev_day(d=d, mo=mo)
-            prev_mo = await get_prev_mo(mo=mo)
-            df['ts'] = df.index
-            df['ts'] = to_datetime(df['ts'])
-            df_year = df['ts'].ix[-1].to_pydatetime().year
-            df_month = df['ts'].ix[-1].to_pydatetime().month
-            df_day = df['ts'].ix[-1].to_pydatetime().day
-            df_weekday = df['ts'].ix[-1].to_pydatetime().weekday()
-
-            #save signals before sending
-            if strategy.direction == 1:
-                if df.ix[i].BUY_SIDE == 1:
-                    if settings.SHOW_DEBUG:
-                        print("Trying to save buy side...")
-                    await save_signal(user=user, strategy=strategy, df=df, i=i, perf=perf, direction=1)
-            elif strategy.direction == 2:
-                if df.ix[i].SELL_SIDE == 1:
-                    if settings.SHOW_DEBUG:
-                        print("Trying to save sell side...")
-                    await save_signal(user=user, strategy=strategy, df=df, i=i, perf=perf, direction=2)
-
-            if( ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d)) | \
-                    ((df_year == ye) & (df_month == mo) & (df['ts'].ix[-1].to_pydatetime().day == d) & (period == 43200)) | \
-                     ((df_year == ye) &  (df['ts'].ix[-1].to_pydatetime().month == mo) & (df_day == any(prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) | \
-                     ((df_year == ye) &  (df_month == prev_mo) & (df_day == any(prev_day)) &  (df_weekday == 6) & (dow == 0) & (period == 10080)) ):
-
-                if settings.SHOW_DEBUG:
-                    print("This day when signal should be sent!")
-                    print("DF year {}\n".format(df['ts'].ix[-1].to_pydatetime().year))
-                    print("Now year {}\n".format(ye))
-                    print("DF month {}\n".format(df['ts'].ix[-1].to_pydatetime().month))
-                    print("Now month {}\n".format(mo))
-                    print("DF day {}\n".format(df['ts'].ix[-1].to_pydatetime().day))
-                    print("Now day {}\n".format(d))
-                    print("df weekday {}".format(df['ts'].ix[-1].to_pydatetime().weekday()))
-                    print("This weekday {}".format(dow))
-                    print()
-
-                if strategy.direction == 1:
-                    if df.ix[i].BUY_SIDE == 1:
-                        if settings.SHOW_DEBUG:
-                            print("Trying to send buy side...\n")
-                        await send_signal(strategy=strategy, strings=['BUY', 'longs'], df=df, i=i, user=user, direction=1)
-                elif strategy.direction == 2:
-                    if df.ix[i].SELL_SIDE == 1:
-                        if settings.SHOW_DEBUG:
-                            print("Trying to send sell side...\n")
-                        await send_signal(strategy=strategy, strings=['SELL', 'shorts'], df=df, i=i, user=user, direction=2)
+        
+        gather(*[save_signal_point(i=i, df=df, user=user, strategy=strategy, \
+            perf=perf, period=period) for i in range(len(df.index))], return_exceptions=True
+        )
+            
     except Exception as err:
         print(colored.red("At _save_signals {}\n".format(err)))
 
 
-async def mask_signals(usr, signals):
+async def mask_signals(s, cnt, usr, signals):
     try:
-        if usr.username == settings.MACHINE_USERNAME:
-            fk_dt = datetime(2016, 10, 1)
-            mask = (to_datetime(signals.index).to_pydatetime() >= fk_dt)
+        if cnt == 0:
+            if usr.username == settings.MACHINE_USERNAME:
+                fk_dt = datetime(2016, 10, 1)
+                mask = (to_datetime(signals.index).to_pydatetime() >= fk_dt)
+            else:
+                mask = (to_datetime(signals.index).to_pydatetime() >= usr.date_joined)
         else:
-            mask = (to_datetime(signals.index).to_pydatetime() >= usr.date_joined)
+            mask = (to_datetime(signals.index).to_pydatetime() >= s.date_time)
+        return signals[mask]
 
     except Exception as err:
         print(colored.red("At mask_signals {}".format(err)))
 
-    return signals[mask]
+
+async def for_strategy_signal(usr, strategy):
+    try:
+        if settings.SHOW_DEBUG:
+            print("For strategy from AI strategies {}".format(strategy.system.title))
+                    
+        try:
+            s = Signals.objects.latest("date_time")
+            cnt = -1
+        except ObjectDoesNotExist:
+            cnt = 0
+            s = None
+
+        file_name = join(settings.DATA_PATH, "systems", "{0}=={1}=={2}=={3}".format(strategy.broker.title, \
+            strategy.symbol.symbol, strategy.period.period, strategy.system.title))
+        signals_df = nonasy_df_multi_reader(filename=file_name)
+                        
+        file_name = join(settings.DATA_PATH, "performance", "{0}=={1}=={2}=={3}".format(strategy.broker.title, \
+            strategy.symbol.symbol, strategy.period.period, strategy.system.title))
+        perf_df = nonasy_df_multi_reader(filename=file_name)
+
+        if len(signals_df.index) > 0:
+            signals = await mask_signals(s=s, cnt=cnt, usr=usr, signals=signals_df)
+        else:
+            signals = None
+        if len(perf_df.index) > 0:
+            perf = await mask_signals(s=s, cnt=cnt, usr=usr, signals=perf_df)
+        else:
+            perf = None
+
+        if not signals is None:
+            await _save_signals(df=signals, perf=perf, strategy=strategy, user=usr, period=strategy.period.period)
+
+        # TODO if we enable signals direct to MT4 EA
+        #for the case when signals delivered through mysql
+        #_signals_to_mysql(db_obj=db, data_frame=signals, portfolio=p, user=usr, direction=1)
+    except Exception as err:
+        print(colored.red("for_strategy_signal {}".format(err)))
 
 
 async def user_signals(usr, strategies):
@@ -1037,49 +1093,40 @@ async def user_signals(usr, strategies):
         if settings.SHOW_DEBUG:
             print("Processing signals for {}".format(usr))
         if len(strategies) > 0:
-            for strategy in strategies:
-                if settings.SHOW_DEBUG:
-                    print("For strategy from AI strategies {}".format(strategy.system.title))
-                
-                signals = await df_multi_reader(filename=join(settings.DATA_PATH, \
-                    "systems", "{0}=={1}=={2}=={3}".format(strategy.broker.title, \
-                    strategy.symbol.symbol, strategy.period.period, strategy.system.title)))
-                
-                perf = await df_multi_reader(filename=join(settings.DATA_PATH, \
-                    "performance", "{0}=={1}=={2}=={3}".format(strategy.broker.title, \
-                    strategy.symbol.symbol, strategy.period.period, strategy.system.title)))
-                
-                if len(signals.index) > 0:
-                    signals = await mask_signals(usr=usr, signals=signals)
-                if len(perf.index) > 0:
-                    perf = await mask_signals(usr=usr, signals=perf)
-                await _save_signals(df=signals, perf=perf, strategy=strategy, user=usr, period=strategy.period.period)
-
-                # TODO if we enable signals direct to MT4 EA
-                #for the case when signals delivered through mysql
-                #_signals_to_mysql(db_obj=db, data_frame=signals, portfolio=p, user=usr, direction=1)
+            gather(*[for_strategy_signal(strategy=strategy, usr=usr) for strategy in \
+                strategies], return_exceptions=True)
     except Exception as err:
         print(colored.red("At user_signals {}".format(err)))
 
 
-def generate_signals(loop):
+def generate_signals():
+    def start_loop(loop, users):
+        set_event_loop(loop)
+        loop.run_until_complete(gather(*[user_signals(usr=usr, \
+            strategies=strategies) for usr in users], return_exceptions=True
+        ))
+    
     users = QtraUser.objects.all()
-    if settings.SHOW_DEBUG:
-        print("Got users {}".format(users))
+    cnt = users.count()
+    batch_size = int(cnt/settings.CPUS)
+    diff = cnt - (settings.CPUS * batch_size)
 
+    #TODO query user specific broker only!!!
+    #Also needs an user form to choose broker signals
     for broker in brokers:
-        if settings.SHOW_DEBUG:
-            print("Making signals for {}".format(broker.title))
-
         strategies = qindex(broker=broker)
 
-        loop.run_until_complete(asyncio.gather(*[user_signals(usr=usr, strategies=strategies) for usr \
-            in users], return_exceptions=True
-        ))
+        for cpu in range(settings.CPUS):
+            if (cpu+1) == settings.CPUS:
+                t = Thread(target=start_loop, args=(new_event_loop(), users[cpu*batch_size:(cpu+1)*batch_size+diff]))
+            else:
+                t = Thread(target=start_loop, args=(new_event_loop(), users[cpu*batch_size:(cpu+1)*batch_size]))
+            t.start()
+            t.join()
 
 
-@asyncio.coroutine
-def gather_bad_file(loop, filename, path_to, list_failing):
+@coroutine
+def gather_bad_file(filename, path_to, list_failing):
     try:
         if settings.SHOW_DEBUG:
             print("Checking {}\n".format(filename))
@@ -1135,20 +1182,28 @@ def gather_bad_file(loop, filename, path_to, list_failing):
 
 
 def read_failing(filenames, path_to, loop, list_failing):
-    try:
-        cor = loop.run_until_complete(asyncio.gather(*[gather_bad_file(loop=loop, \
-            filename=filename, path_to=path_to, list_failing=list_failing) \
-            for filename in filenames])
-            )
-        if settings.SHOW_DEBUG:
-            print("Func read_failing res {}".format(cor))
-    except Exception as e:
-        print("At read_failing {}".format(e))
+
+    def start_loop(loop, filenames):
+        set_event_loop(loop)
+        loop.run_until_complete(gather(*[gather_bad_file(filename=filename, \
+            path_to=path_to, list_failing=list_failing) for filename in filenames]))
+
+    cnt = len(filenames)
+    batch_size = int(cnt/settings.CPUS)
+    diff = cnt - (settings.CPUS * batch_size)
+
+    for cpu in range(settings.CPUS):
+        if (cpu+1) == settings.CPUS:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size+diff]))
+        else:
+            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size]))
+        t.start()
+        t.join()
 
     return list_failing
 
 
-@asyncio.coroutine
+@coroutine
 def clean_failed_file(path_to, file_name):
     try:
         if settings.SHOW_DEBUG:
@@ -1177,7 +1232,7 @@ def data_checker(loop):
         sender = settings.DEFAULT_FROM_EMAIL
         send_mail(subject, message, sender, settings.NOTIFICATIONS_EMAILS)
 
-        loop.run_until_complete(asyncio.gather(*[clean_failed_file(path_to=p, \
+        loop.run_until_complete(gather(*[clean_failed_file(path_to=p, \
             file_name=file_name) for file_name in list_failing], return_exceptions=True
         ))
 
@@ -1566,7 +1621,7 @@ async def generate_qindexd_stats(broker):
         stats['bh_sharpe'] = await sharpe_func(avg_trade=stats['bh_avg_trade'], std=stats['bh_std'])
         stats['bh_sortino'] = await sortino_ratio(returns=df.DIFF.as_matrix(), target=0)
         stats['avg_win'], stats['avg_loss'] = await avg_win_loss_func(data=df.LONG_PL)
-        stats['win_rate'] = await win_rate_func(data=df.LONG_PL, axis=1)
+        stats['win_rate'] = await win_rate_func(data=df.LONG_PL)
         stats['trades'] = await trades_func(data=df.LONG_TRADES)
         stats['gross_profit'], stats['gross_loss'], stats['total_profit'], \
             stats['fr'] = await fr_func(avg_trade=stats['avg_trade'], \
@@ -1591,7 +1646,7 @@ async def generate_qindexd_stats(broker):
             symbol.margin_initial = stats['margin']
             symbol.save()
             print(colored.green("Wrote Qindex stats to db"))
-        except IntegritytError:
+        except IntegrityError:
             await update_stats(broker=broker, symbol=symbol, period=period, system=system, \
                 direction=1, stats=stats)
     except Exception as e:
@@ -1602,12 +1657,12 @@ def generate_stats(loop):
     path_to = join(settings.DATA_PATH, "performance")
     filenames = hdfone_filenames(folder="performance", path_to=path_to)
 
-    loop.run_until_complete(asyncio.gather(*[loop_over_strats(\
+    loop.run_until_complete(gather(*[loop_over_strats(\
         path_to=path_to, filename=filename, loop=loop) for filename \
         in filenames], return_exceptions=True
     ))
 
-    loop.run_until_complete(asyncio.gather(*[generate_qindexd_stats(broker=broker) for broker in brokers],
+    loop.run_until_complete(gather(*[generate_qindexd_stats(broker=broker) for broker in brokers],
         return_exceptions=True
      ))
 
@@ -1684,14 +1739,28 @@ async def data_downloader(item, webdav):
         print(colored.red("At generate remote file {}\n".format(e)))
 
 
-def generate_remote_files(loop):
-    for resource in settings.WEBDAV_SOURCES:
-        webdav = easywebdav.Client(host=resource[0], port=resource[1], username=settings.WEBDAV_USERNAME, password=settings.WEBDAV_PASSWORD)
-        filelist = webdav.ls()
-
-        loop.run_until_complete(asyncio.gather(*[data_downloader(item=item, webdav=webdav \
+def generate_remote_files():
+    def start_loop(loop, filelist):
+        set_event_loop(loop)
+        loop.run_until_complete(gather(*[data_downloader(item=item, webdav=webdav \
             ) for item in filelist], return_exceptions=True
         ))
+
+    for resource in settings.WEBDAV_SOURCES:
+        webdav = easywebdav.Client(host=resource[0], port=resource[1], 
+            username=settings.WEBDAV_USERNAME, password=settings.WEBDAV_PASSWORD)
+        filelist = webdav.ls()
+        cnt = len(filelist)
+        batch_size = int(cnt/settings.CPUS)
+        diff = cnt - (settings.CPUS * batch_size)
+
+        for cpu in range(settings.CPUS):
+            if (cpu+1) == settings.CPUS:
+                t = Thread(target=start_loop, args=(new_event_loop(), filelist[cpu*batch_size:(cpu+1)*batch_size+diff]))
+            else:
+                t = Thread(target=start_loop, args=(new_event_loop(), filelist[cpu*batch_size:(cpu+1)*batch_size]))
+            t.start()
+            t.join()
 
 
 async def key_gen(user):
@@ -1703,11 +1772,11 @@ async def key_gen(user):
 
 def generate_keys(loop):
     size = settings.USER_KEY_SYMBOLS
-    chars = string.ascii_uppercase + string.digits + string.ascii_lowercase
+    chars = ascii_uppercase + digits + ascii_lowercase
 
     users = QtraUser.objects.filter(user_type=1)
 
-    loop.run_until_complete(asyncio.gather(*[key_gen(user=user) \
+    loop.run_until_complete(gather(*[key_gen(user=user) \
         for user in users], return_exceptions=True
     ))
 
@@ -1732,7 +1801,7 @@ def create_symbols(loop):
     path_to = join(settings.DATA_PATH, "incoming")
     filenames = multi_filenames(path_to_history=path_to, csv=True)
 
-    loop.run_until_complete(asyncio.gather(*[create_sym(\
+    loop.run_until_complete(gather(*[create_sym(\
         filename=filename) for filename in filenames],
         return_exceptions=True
     ))
@@ -1838,7 +1907,7 @@ def create_commissions(loop):
     multiplied_symbols = ['LTCMini', 'LTCWeekly']
     symbols = Symbols.objects.filter().exclude(symbol__in=ignored_symbols)
 
-    loop.run_until_complete(asyncio.gather(*[process_commissions(symbol=symbol, \
+    loop.run_until_complete(gather(*[process_commissions(symbol=symbol, \
         multiplied_symbols=multiplied_symbols) for symbol in symbols],
         return_exceptions=True
     ))
@@ -1911,7 +1980,7 @@ def symbol_data_to_postgres(dbsql, loop):
     c.execute(query)
     res = c.fetchall()
 
-    loop.run_until_complete(asyncio.gather(*[process_symbols_to_postgress(row=row) for row in res],
+    loop.run_until_complete(gather(*[process_symbols_to_postgress(row=row) for row in res],
         return_exceptions=True
     ))
 
@@ -1954,7 +2023,7 @@ def process_urls_to_db(loop):
 
     stats = Stats.objects.all()
 
-    loop.run_until_complete(asyncio.gather(*[image_to_db(path_to=path_to, s=s) for s in stats],
+    loop.run_until_complete(gather(*[image_to_db(path_to=path_to, s=s) for s in stats],
         return_exceptions=True
     ))
 

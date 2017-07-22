@@ -47,13 +47,13 @@ def main():
         start_time = time.time()
 
         print("Collecting data...")
-        generate_remote_files(loop=loop)
+        generate_remote_files()
 
         print("Cheking data...")
         data_checker(loop=loop)
 
         print("Initial pickling...")
-        data_model_csv(loop=loop)
+        data_model_csv()
         quandl_process(loop=loop)
 
         print("Indicators...")
@@ -62,7 +62,7 @@ def main():
             filenames = hdfone_filenames(folder="incoming_pickled", path_to=path_to)
         else:
             filenames = multi_filenames(path_to_history=path_to)
-        indicator_processor(loop=loop, filenames=filenames)
+        indicator_processor(filenames=filenames)
 
         print("Strategies...")
         path_to = join(settings.DATA_PATH, "indicators")
@@ -70,19 +70,16 @@ def main():
             filenames = hdfone_filenames(folder="incoming_pickled", path_to=path_to)
         else:
             filenames = multi_filenames(path_to_history=path_to)
-        strategy_processor(loop=loop, filenames=filenames)
+        strategy_processor(filenames=filenames)
 
         print("Signals...")
-        generate_signals(loop=loop)
+        generate_signals()
 
         print("Signal generation tasks: %s seconds ---" % (time.time() - start_time))
 
     if args.daily:
         dbsql = mysql_connect_db()
         start_time = time.time()
-
-        print("Collecting data...")
-        generate_remote_files(loop=loop)
 
         print("Creating symbols...")
         create_symbols(loop=loop)
@@ -145,9 +142,9 @@ def main():
         create_folders()
         generate_remote_files(loop=loop)
         create_symbols(loop=loop)
-    
+
     if args.mc:
-        batch_size = 500
+        batch_size = 600
         #mc(loop=loop)
         """
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -155,7 +152,6 @@ def main():
         batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="i")
-        """
         
         path_to = join(settings.DATA_PATH, "monte_carlo", "indicators")
         filenames = multi_filenames(path_to_history=path_to)
@@ -168,7 +164,7 @@ def main():
         batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="p")
-        
+        """
         path_to = join(settings.DATA_PATH, "monte_carlo", "performance")
         filenames = multi_filenames(path_to_history=path_to)
         batches = int(len(filenames)/batch_size)+2
