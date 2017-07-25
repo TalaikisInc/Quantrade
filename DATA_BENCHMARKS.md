@@ -38,7 +38,7 @@ Ubuntu 16.04 under Windows 10, Pentium G3220, 16 Gb RAM.
 
 ## 2017-07-22
 
-## Pickle, v11, async + 6 cores, live
+## Pickle, v11, async + 6 cores/ on Thread, live
 
 * Hourly tasks - 740 s
 

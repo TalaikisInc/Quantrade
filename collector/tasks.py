@@ -68,6 +68,34 @@ async def ext_drop(filename: str) -> str:
     return file_name
 
 
+async def name_decosntructor(filename: str, t: str, mc: bool=False) -> dict:
+    try:
+        if settings.DATA_TYPE != "hdfone":
+            filename = await ext_drop(filename=filename)
+
+        spl = filename.split('==')
+        broker = spl[0]
+        symbol = spl[1]
+        period = spl[2]
+        if t == "s":
+            system = spl[3]
+        else:
+            system = None
+        if t == "i":
+            indicator = spl[3]
+        else:
+            indicator = None
+        if mc:
+            path = spl[4]
+        else:
+            path = None
+        
+        return {"filename": filename, "broker": broker, "symbol": symbol, "period": period, 
+            "system": system, "path": path, "indicator": indicator }
+    except Exception as err:
+        print(colorted.red("name_decosntructor {}".format(err)))
+
+
 @lru_cache(maxsize=None)
 def multi_filenames(path_to_history: str, csv: bool=False) -> List[str]:
     filenames = []
@@ -375,7 +403,7 @@ def quandl_process(loop):
     ))
 
 
-async def make_strat_image(system, symbol, period, broker, filename, data):
+async def make_strat_image(system, symbol, period, broker, data):
     path_to_performance = join(settings.DATA_PATH, 'performance')
     mdpi = 300
 
@@ -422,32 +450,30 @@ async def make_strat_image(system, symbol, period, broker, filename, data):
                 symbol, period, system)))
             plt.close()
             if settings.SHOW_DEBUG:
-                print("Made images for: {}\n".format(filename))
+                print("Made images")
     except Exception as e:
         print("At make_strat_image {}".format(e))
 
 
 async def make_image(path_to, filename):
     try:
-        spl = filename.split('==')
-        broker = spl[0]
-        broker_slugified = slugify(broker).replace('-', '_')
-        symbol = spl[1]
-        period = spl[2]
-        system = spl[3].split('.')[0]
+        info = await name_decosntructor(filename=filename, t="s")
+        broker_slugified = slugify(info["broker"]).replace('-', '_')
 
         image_filename = join(settings.STATIC_ROOT, 'collector', 'images', \
             'meta', '{0}=={1}=={2}=={3}==longs_shorts.png'.format(broker_slugified, \
-            symbol, period, system))
+            info["symbol"], info["period"], info["system"]))
 
-        data = await df_multi_reader(filename=join(path_to, filename))
+        data = await df_multi_reader(filename=join(path_to, info["filename"]))
 
         data = data.loc[data['CLOSE'] != 0]
 
         if not isfile(image_filename):
-            await make_strat_image(system=system, symbol=symbol, period=period, broker=broker_slugified, filename=filename, data=data)
+            await make_strat_image(system=info["system"], symbol=info["symbol"], \
+                period=info["period"], broker=broker_slugified, data=data)
         if datetime.fromtimestamp(getmtime(image_filename)) < (datetime.now() - timedelta(days=30)):
-            await make_strat_image(system=system, symbol=symbol, period=period, broker=broker_slugified, filename=filename, data=data)
+            await make_strat_image(system=info["system"], symbol=info["symbol"], \
+                period=info["period"], broker=broker_slugified, data=data)
 
     except Exception as e:
         print("At making images {}\n".format(e))
@@ -775,43 +801,40 @@ async def save_heatmap(data, broker_slugified, symbol, period, system, direction
 
 async def make_heat_img(path_to, filename):
     try:
-        spl = filename.split("==")
-        broker = str(slugify(spl[0])).replace("-", "_")
-        symbol = spl[1]
-        period = spl[2]
-        system = spl[3].split(".")[0]
+        info = await name_decosntructor(filename=filename, t="s")
+        broker = str(slugify(info["broker"])).replace("-", "_")
 
-        file_name = join(path_to, filename)
+        file_name = join(path_to, info["filename"])
         file_name = await ext_drop(filename=file_name)
         df = await df_multi_reader(filename=file_name)
 
         if len(df.index) > settings.MIN_TRADES:
             longs = await convert_to_perc(data=df.LONG_PL, broker=broker, \
-                symbol=symbol, period=int(period), system=system, direction=1)
+                symbol=info["symbol"], period=int(info["period"]), system=info["system"], direction=1)
             shorts = await convert_to_perc(data=df.SHORT_PL, broker=broker, \
-                symbol=symbol, period=int(period), system=system, direction=2)
+                symbol=info["symbol"], period=int(info["period"]), system=info["system"], direction=2)
             long_short = await convert_to_perc(data=(df.LONG_PL + df.SHORT_PL), \
-                broker=broker, symbol=symbol, period=int(period), \
-                system=system, direction=0)
+                broker=broker, symbol=info["symbol"], period=int(info["period"]), \
+                system=info["system"], direction=0)
 
             if not (longs is None):
                 await save_heatmap(data=longs, \
-                    broker_slugified=broker, symbol=symbol, period=period, \
-                    system=system, direction='longs')
+                    broker_slugified=broker, symbol=info["symbol"], period=info["period"], \
+                    system=info["system"], direction='longs')
                 await make_yearly_returns(returns=longs, broker_slugified=broker, \
-                    symbol=symbol, period=period, system=system, direction='longs')
+                    symbol=info["symbol"], period=info["period"], system=info["system"], direction='longs')
             if not (shorts is None):
                 await save_heatmap(data=shorts, \
-                    broker_slugified=broker, symbol=symbol, period=period, \
-                    system=system, direction='shorts')
+                    broker_slugified=broker, symbol=info["symbol"], period=info["period"], \
+                    system=info["system"], direction='shorts')
                 await make_yearly_returns(returns=shorts, broker_slugified=broker, \
-                    symbol=symbol, period=period, system=system, direction='shorts')
+                    symbol=info["symbol"], period=info["period"], system=info["system"], direction='shorts')
             if not (long_short is None):
                 await save_heatmap(data=long_short, \
-                    broker_slugified=broker, symbol=symbol, period=period, \
-                    system=system, direction='longs_shorts')
+                    broker_slugified=broker, symbol=info["symbol"], period=info["period"], \
+                    system=info["system"], direction='longs_shorts')
                 await make_yearly_returns(returns=long_short, broker_slugified=broker, \
-                    symbol=symbol, period=period, system=system, direction='longs_shorts')
+                    symbol=info["symbol"], period=info["period"], system=info["system"], direction='longs_shorts')
 
     except Exception as e:
         print("At make_heat_img {}".format(e))
@@ -1541,29 +1564,24 @@ async def stats_process(df, d, years, broker, symbol, period, system):
 
 async def loop_over_strats(path_to, filename, loop):
     try:
-        look_for = join(path_to, filename)
-        look_for = await ext_drop(filename=look_for)
         if settings.SHOW_DEBUG:
             print("Stats Working with {}".format(look_for))
 
-        spl = filename.split('==')
-        broker_ = spl[0]
-        symbol_ = spl[1]
-        period_ = spl[2]
-        system_ = spl[3].split(".")[0]
+        info = await name_decosntructor(filename=filename, t="s")
+        file_name = join(path_to, info["filename"])
 
-        symbol = Symbols.objects.get(symbol=symbol_)
-        period = Periods.objects.get(period=period_)
+        symbol = Symbols.objects.get(symbol=info["symbol"])
+        period = Periods.objects.get(period=info["period"])
         try:
             if settings.SHOW_DEBUG:
-                print("System: {}".format(system_))
-            system = Systems.objects.get(title=system_)
+                print("System: {}".format(info["system"]))
+            system = Systems.objects.get(title=info["system"])
         except:
             system = None
 
         if system:
-            broker = Brokers.objects.get(title=broker_)
-            df = await df_multi_reader(filename=look_for)
+            broker = Brokers.objects.get(title=info["broker"])
+            df = await df_multi_reader(filename=file_name)
 
             try:
                 years = df.index[-1].year - df.index[0].year + ((12 - df.index[0].month) + df.index[-1].month) / 12.0
@@ -1571,7 +1589,7 @@ async def loop_over_strats(path_to, filename, loop):
                 print(colored.red("At years {}\n".format(e)))
                 years = None
 
-            if not (years is None):
+            if not years is None:
                 df['BUYSELL'] = df['LONG_PL'] + df['SHORT_PL']
                 df['BUYSELL_CUMSUM'] = df['BUYSELL'].cumsum()
 
@@ -1579,9 +1597,9 @@ async def loop_over_strats(path_to, filename, loop):
                 for d in directions:
                     await stats_process(df=df, d=d, years=years, broker=broker, \
                         symbol=symbol, period=period, system=system)
-    except Exception as e:
-        print(colored.red("At loop over strats {}\n".format(e)))
-        await file_cleaner(filename=look_for)
+    except Exception as err:
+        print(colored.red("At loop over strats {}\n".format(err)))
+        await file_cleaner(filename=file_name)
 
 
 async def generate_qindexd_stats(broker):
@@ -1782,7 +1800,6 @@ def generate_keys(loop):
 
 
 async def create_sym(filename):
-    #spl = str(filename.filename).split('_')
     spl = filename.split('_')
     broker_ = spl[2]
     symbol = spl[3]
@@ -1896,7 +1913,7 @@ async def process_commissions(symbol, multiplied_symbols):
         symbol.commission = value
         symbol.save()
     except Exception as e:
-        print("At process commissions {}".format(e))
+        print(colored.red("At process commissions {}".format(e)))
         symbol.commission = None
         symbol.save()
     if settings.SHOW_DEBUG:
@@ -1967,7 +1984,7 @@ async def process_symbols_to_postgress(row):
             if settings.SHOW_DEBUG:
                 print("Updated Postgres symbol data for {}\n".format(row[6]))
     except Exception as e:
-        print("At process_symbols_to_postgress symbols {0} with {1}".format(e, row))
+        print(colored.red("At process_symbols_to_postgress symbols {0} with {1}".format(e, row)))
 
 
 def symbol_data_to_postgres(dbsql, loop):

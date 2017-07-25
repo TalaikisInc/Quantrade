@@ -144,7 +144,7 @@ def main():
         create_symbols(loop=loop)
 
     if args.mc:
-        batch_size = 600
+        batch_size = 100
         #mc(loop=loop)
         """
         path_to = join(settings.DATA_PATH, "monte_carlo")

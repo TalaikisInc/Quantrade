@@ -21,10 +21,10 @@ from .models import Stats
 async def mc_maker(filename):
     try:
         size = 3000
-        filename = ext_drop(filename=filename)
-        print(filename)
 
-        file_name = join(settings.DATA_PATH, "incoming_pickled", filename)
+        info = await name_decosntructor(filename=filename, t="")
+
+        file_name = join(settings.DATA_PATH, "incoming_pickled", info["filename"])
         df = await df_multi_reader(filename=file_name)
 
         try:
@@ -33,23 +33,18 @@ async def mc_maker(filename):
             close = None
 
         if (len(df.index) > 0) & (close is not None):
-            spl = filename.split('==')
-            broker = slugify(spl[0]).replace("-", "_")
-            symbol = spl[1]
-            period = spl[2]
-
             close_params = stats.t.fit(close)
 
             for path in range(100):
                 close_roll = stats.t.rvs(df=close_params[0], loc=close_params[1], \
                     scale=close_params[2], size=size)
 
-                out_filename = join(settings.DATA_PATH, "monte_carlo", filename + "==" + str(path))
+                out_filename = join(settings.DATA_PATH, "monte_carlo", info["filename"] + "==" + str(path))
                 out_df = DataFrame({"CLOSE": close_roll.reshape((-1,1))[:,0],
                     "HIGH": close_roll.reshape((-1,1))[:,0],
                     "LOW": close_roll.reshape((-1,1))[:,0]}).cumsum()
 
-                final = await init_calcs(df=out_df, symbol=symbol)
+                final = await init_calcs(df=out_df, symbol=info["symbol"])
                 await df_multi_writer(df=final, out_filename=out_filename)
     except Exception as err:
         print(colored.red(" At mc_maker {}".format(err)))
@@ -166,6 +161,6 @@ def mc_trader(loop, batch, batch_size, filenames, t):
     if t == "s":
         strategy_processor(mc=True, filenames=filenames)
     if t == "p":
-        generate_performance(mc=True, filenames=filenames)
+        generate_performance(loop=loop, mc=True, filenames=filenames)
     if t == "a":
         aggregate(filenames=filenames)

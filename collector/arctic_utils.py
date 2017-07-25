@@ -10,8 +10,8 @@ from numpy import where, sum
 from clint.textui import colored
 
 from .tasks import adjustment_bureau, get_commission, file_cleaner, \
-    df_multi_reader, df_multi_writer, multi_filenames, ext_drop, \
-    hdfone_filenames, multi_remove, nonasy_df_multi_reader
+    df_multi_reader, df_multi_writer, multi_filenames, hdfone_filenames, \
+    multi_remove, nonasy_df_multi_reader, name_decosntructor
 from .models import Indicators, Systems, Symbols
 from _private.strategies import ExportedIndicators, ExportedSystems
 
@@ -149,19 +149,9 @@ class IndicatorBase(ExportedIndicators):
 
         for filename in self.filenames:
             try:
-                if settings.DATA_TYPE != "hdfone":
-                    filename = await ext_drop(filename=filename)
+                self.info = await name_decosntructor(filename=filename, t="", mc=self.mc)
 
-                spl = filename.split('==')
-                self.broker = spl[0]
-                self.symbol = spl[1]
-                if self.mc:
-                    self.period = spl[2]
-                    self.path = spl[3]
-                else:
-                    self.period = spl[2]
-
-                file_name = join(self.path_to_history, filename)
+                file_name = join(self.path_to_history, self.info["filename"])
 
                 df = nonasy_df_multi_reader(filename=file_name)
 
@@ -177,10 +167,12 @@ class IndicatorBase(ExportedIndicators):
 
             if self.mc:
                 out_filename = join(settings.DATA_PATH, "monte_carlo", "indicators", \
-                    "{0}=={1}=={2}=={3}=={4}".format(self.broker, self.symbol, self.period, self.name, self.path))
+                    "{0}=={1}=={2}=={3}=={4}".format(self.info["broker"], self.info["symbol"], \
+                    self.info["period"], self.name, self.info["path"]))
             else:
                 out_filename = join(settings.DATA_PATH, "indicators", \
-                    "{0}=={1}=={2}=={3}".format(self.broker, self.symbol, self.period, self.name))
+                    "{0}=={1}=={2}=={3}".format(self.info["broker"], self.info["symbol"], \
+                    self.info["period"], self.name))
 
             await df_multi_writer(df=df, out_filename=out_filename)
 
@@ -192,8 +184,8 @@ class IndicatorBase(ExportedIndicators):
         except Exception as err:
             print(colored.red("IndicatorBase insert {}".format(err)))
             filename = join(settings.DATA_PATH, 'indicators', "{0}=={1}=={2}=={3}.mp".\
-                format(self.broker, self.symbol, self.period, self.name))
-            await file_cleaner(filename=filename)
+                format(self.info["broker"], self.info["symbol"], self.info["period"], self.name))
+            await file_cleaner(filename=file_name)
 
 
 #TODO this also requires special case for sending and svinh signals if this would appear on systems pg
@@ -396,7 +388,7 @@ async def maes(system, df):
     return df
 
 
-async def clean(broker: str, symbol: str, period: str, system: str, mc: bool) -> None:
+async def clean(broker: str, symbol: str, period: str, system: str, mc: bool=False) -> None:
     try:
         if not mc:
             folders = ['performance', 'systems']
@@ -410,58 +402,45 @@ async def clean(broker: str, symbol: str, period: str, system: str, mc: bool) ->
 
 async def perf_point(filename, path_to, mc):
     try:
-        if settings.DATA_TYPE != "hdfone":
-            filename = await ext_drop(filename=filename)
-
-        if settings.SHOW_DEBUG:
-            print("Working with {}".format(filename))
-        spl = filename.split('==')
-        broker = spl[0]
-        symbol = spl[1]
-        if settings.SHOW_DEBUG:
-            print("Processing {}".format(symbol))
-        period = spl[2]
-        system = spl[3]
-        if mc:
-            path = spl[4]
+        info = await name_decosntructor(filename=filename, t="s", mc=mc)
         
         if settings.SHOW_DEBUG:
-            print("Working with {0} {1} {2}".format(symbol, period, system))
+            print("Working with {0} {1} {2}".format(info["symbol"], info["period"], info["system"]))
 
-        margin = await get_margin(broker=broker, symbol=symbol)
-        commission = await get_commission(symb=symbol)
+        margin = await get_margin(broker=info["broker"], symbol=info["symbol"])
+        commission = await get_commission(symb=info["symbol"])
 
         if (not commission is None) & (not margin is None):
             if commission > 0:
-                df = await df_multi_reader(filename=join(path_to, filename))
+                df = await df_multi_reader(filename=join(path_to, info["filename"]))
 
                 if len(df.index) > settings.MIN_TRADES:
-
                     df.index = to_datetime(df.index).to_pydatetime()
 
                     df['dif'] = await adjustment_bureau(data=df['DIFF'], \
-                        symbol_name=symbol, broker_name=broker, period_name=period)
+                        symbol_name=info["symbol"], broker_name=info["broker"], \
+                        period_name=info["period"])
                     
-                    if not (df['dif'] is None):
+                    if not df['dif'] is None:
                         del df['DIFF']
 
                     df.rename(columns={'dif': 'DIFF'}, inplace=True)
 
-                    df = await long_short(system=system, commission=commission, margin=margin, df=df)
+                    df = await long_short(system=info["system"], commission=commission, margin=margin, df=df)
 
                     df['LONG_PL_CUMSUM'] = df['LONG_PL'].cumsum()
                     df['SHORT_PL_CUMSUM'] = df['SHORT_PL'].cumsum()
 
-                    df['mae'] = await adjustment_bureau(data=df['cl'], symbol_name=symbol, \
-                        broker_name=broker, period_name=period)
-                    df['mfe'] = await adjustment_bureau(data=df['hc'], symbol_name=symbol, \
-                        broker_name=broker, period_name=period)
+                    df['mae'] = await adjustment_bureau(data=df['cl'], symbol_name=info["symbol"], \
+                        broker_name=info["broker"], period_name=info["period"])
+                    df['mfe'] = await adjustment_bureau(data=df['hc'], symbol_name=info["symbol"], \
+                        broker_name=info["broker"], period_name=info["period"])
 
                     df.rename(columns={'mae': 'MAE', 'mfe': 'MFE'}, inplace=True)
                     del df['cl']
                     del df['hc']
 
-                    df = await maes(system=system, df=df)
+                    df = await maes(system=info["system"], df=df)
 
                     df['LONG_DIFF_CUMSUM'] = df['DIFF'].cumsum()
                     df['SHORT_DIFF_CUMSUM'] = -df['DIFF'].cumsum()
@@ -475,25 +454,26 @@ async def perf_point(filename, path_to, mc):
 
                     if mc:
                         out_filename = join(settings.DATA_PATH, 'monte_carlo', 'performance', \
-                            "{0}=={1}=={2}=={3}=={4}".format(broker, symbol, period, system, path))
+                            "{0}=={1}=={2}=={3}=={4}".format(info["broker"], info["symbol"], \
+                            info["period"], info["system"], info["path"]))
                     else:
                         out_filename = join(settings.DATA_PATH, 'performance', "{0}=={1}=={2}=={3}".format(\
-                            broker, symbol, period, system))
+                            info["broker"], info["symbol"], info["period"], info["system"]))
 
                     await df_multi_writer(df=df, out_filename=out_filename)
                         
                     if settings.SHOW_DEBUG:
-                        print(colored.green("Saved performance {} to pickle.".format(filename)))
+                        print(colored.green("Saved performance {} to pickle.".format(iinfo["filename"])))
                     if mc:
-                        await multi_remove(filename=join(path_to, filename))
+                        await multi_remove(filename=join(path_to, info["filename"]))
                 else:
-                    await clean(broker=broker, symbol=symbol, period=period, system=system, mc=mc)
+                    await clean(broker=info["broker"], symbol=info["symbol"], period=info["period"], system=info["system"], mc=mc)
             else:
-                await clean(broker=broker, symbol=symbol, period=period, system=system, mc=mc)
+                await clean(broker=info["broker"], symbol=info["symbol"], period=info["period"], system=info["system"], mc=mc)
         else:
-            await clean(broker=broker, symbol=symbol, period=period, system=system, mc=mc)
+            await clean(broker=info["broker"], symbol=info["symbol"], period=info["period"], system=info["system"], mc=mc)
     except Exception as err:
-        print(colored.red("At generating performance {0} with {1}".format(err, filename)))
+        print(colored.red("At generating performance {}".format(err)))
 
 
 def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
@@ -552,22 +532,11 @@ class SignalBase(ExportedSystems):
         await self.create_system()
 
         for filename in self.filenames:
-            if settings.DATA_TYPE != "hdfone":
-                filename = await ext_drop(filename=filename)
-
-            spl = filename.split('==')
-
-            self.broker = spl[0]
-            self.symbol = spl[1]
-            self.period = spl[2]
-            self.file_indicator = spl[3]
-
-            if self.mc:
-                self.path = spl[4]
+            self.info = await name_decosntructor(filename=filename, t="i", mc=self.mc)
 
             #This should be improved, highly ineffiecient!!!!
-            if str(self.indicator) == self.file_indicator:
-                file_name = join(self.path_to_history, filename)
+            if str(self.indicator) == self.info["indicator"]:
+                file_name = join(self.path_to_history, self.info["filename"])
 
                 df = nonasy_df_multi_reader(filename=file_name)
 
@@ -579,15 +548,16 @@ class SignalBase(ExportedSystems):
 
             if self.mc:
                 out_filename = join(settings.DATA_PATH, "monte_carlo", "systems", "{0}=={1}=={2}=={3}=={4}".\
-                    format(self.broker, self.symbol, self.period, self.name, self.path))
+                    format(self.info["broker"], self.info["symbol"], self.info["period"], self.name, self.info["path"]))
             else:
-                out_filename = join(settings.DATA_PATH, "systems", "{0}=={1}=={2}=={3}".format(self.broker, \
-                    self.symbol, self.period, self.name))
+                out_filename = join(settings.DATA_PATH, "systems", "{0}=={1}=={2}=={3}".format(self.info["broker"], \
+                    self.info["symbol"], self.info["period"], self.name))
             
             await df_multi_writer(df=df, out_filename=out_filename)
-            json_filename = join(settings.DATA_PATH, "systems", "json", "{0}=={1}=={2}=={3}.json".format(self.broker, \
-                    self.symbol, self.period, self.name))
-            df.to_json(json_filename, orient="table")
+            if not self.mc:
+                json_filename = join(settings.DATA_PATH, "systems", "json", "{0}=={1}=={2}=={3}.json".format(self.info["broker"], \
+                        self.info["symbol"], self.info["period"], self.name))
+                df.to_json(json_filename, orient="table")
 
             if self.mc:
                 await multi_remove(filename=file_name)
@@ -596,5 +566,6 @@ class SignalBase(ExportedSystems):
                 print(colored.green("Saved system signals {} to pickle.".format(out_filename)))
         except Exception as err:
             print(colored.red("SystemBase insert  {}".format(err)))
-            filename = join(settings.DATA_PATH, 'systems', "{0}=={1}=={2}=={3}.mp".format(self.broker, self.symbol, self.period, self.name) )
+            filename = join(settings.DATA_PATH, 'systems', "{0}=={1}=={2}=={3}.mp".format(self.info["broker"], \
+                self.info["symbol"], self.info["period"], self.name))
             await file_cleaner(filename=filename)

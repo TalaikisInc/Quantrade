@@ -16,8 +16,7 @@ from django.conf import settings
 from django.template.defaultfilters import slugify
 
 from .models import GARCH, Brokers, Symbols, Periods
-from .tasks import df_multi_reader, multi_filenames, df_multi_writer
-from .arctic_utils import ext_drop
+from .tasks import df_multi_reader, multi_filenames, df_multi_writer, name_decosntructor, ext_drop
 
 
 async def save_garch(broker, symbol, period, change):
@@ -33,18 +32,14 @@ async def save_garch(broker, symbol, period, change):
 
 async def gtdb(filename):
     try:
-        filename = await ext_drop(filename=filename)
+        info = await name_decosntructor(filename=filename, t="")
 
-        spl = filename.split("==")
-        broker_slug = spl[0]
-        symbol_slug = spl[1]
-        broker = Brokers.objects.get(title=broker_slug)
-        symbol = Symbols.objects.get(symbol=symbol_slug)
-        period_slug = spl[2]
-        period = Periods.objects.get(period=period_slug)
+        broker = Brokers.objects.get(title=info["broker"])
+        symbol = Symbols.objects.get(symbol=info["symbol"])
+        period = Periods.objects.get(period=info["period"])
 
         if '1440' in period_slug:
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -60,7 +55,7 @@ async def gtdb(filename):
 
         #weekly
         if '10080' in period_slug:
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -75,7 +70,7 @@ async def gtdb(filename):
 
         #monthly
         if '43200' in period_slug:
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', filename))
+            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
 
@@ -152,15 +147,15 @@ async def write_g(fl):
                 dte+timedelta(days=5*30)])
             final = d.append(f)
 
-        splt = fl.split("==")
-        broker = str(slugify(splt[0])).replace('-', '_')
-        symbol = splt[1]
-        period = splt[2].split(".")[0]
-        out_filename = join(settings.DATA_PATH, 'garch', fl)
+        info = await name_decosntructor(filename=fl, t="")
+
+        broker = str(slugify(info["broker"])).replace('-', '_')
+
+        out_filename = join(settings.DATA_PATH, 'garch', info["filename"])
         out_filename = await ext_drop(filename=out_filename)
-        ofl = "{0}=={1}=={2}.png".format(broker, symbol, period)
+        ofl = "{0}=={1}=={2}.png".format(info["broker"], info["symbol"], info["period"])
         out_image = join(settings.STATIC_ROOT, 'collector', 'images', 'garch', ofl)
-        title = "{0} {1} GJR-GARCH forecast".format(symbol, period)
+        title = "{0} {1} GJR-GARCH forecast".format(info["symbol"], info["period"])
 
         await df_multi_writer(df=final, out_filename=out_filename)
 
@@ -169,7 +164,7 @@ async def write_g(fl):
         plt.plot(f, label='Forecast', color='r', lw=4)
         plt.savefig(out_image)
         plt.close()
-        print(colored.green("Made GARCH for {}".format(symbol)))
+        print(colored.green("Made GARCH for {}".format(info["symbol"])))
     except Exception as err:
         print(colored.red("At write garch {}".format(err)))
 

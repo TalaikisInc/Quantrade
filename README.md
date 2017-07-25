@@ -101,6 +101,8 @@ if 'SM' in self.name:
     await self.insert(df.dropna())
 ```
 
+If you need to access broker, symbol, system or period on your strategy - use ``self.info["broker"]``,...
+
 ## Issues
 
 * Yahoo dropped its data and as a concequence Quandl too. Project has some (very poor in my opinion) initial try to implement

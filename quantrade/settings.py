@@ -1,5 +1,5 @@
-from os.path import (join, dirname)
-from os import (environ, pardir)
+from os.path import join, dirname
+from os import environ, pardir, cpu_count
 from datetime import datetime
 import logging
 
@@ -18,6 +18,7 @@ dev_env = environ.get("DEV_ENV")
 assert isinstance(dev_env, str)
 DEV_ENV  = int(dev_env)
 VAGRANT = int(environ.get("VAGRANT"))
+CPUS = 1 #cpu_count()
 
 DATA_TYPE = environ.get("DATA_TYPE")
 valid = ["pickle", "json", "messagepack", "feather", "hdf", "hdfone", "proto2"]
@@ -249,7 +250,7 @@ MIN_PORTFOLIO_PUBLIC_SHARPE = 0.3
 MIN_PORTFOLIO_PUBLIC_FITNESS = 0.1
 MIN_MACHINE_WIN_RATE = 0.55
 STRATEGIES_IN_MACHINE_PORTFOLIO = 4
-MIN_YEARLY = 2.0
+MIN_YEARLY = 15.0
 LIMIT_MONTHS = '72M'
 LIMIT_ENABLED = True
 LIMIT_STRATEGIES_FOR_NON_CUSTOMERS = 5
