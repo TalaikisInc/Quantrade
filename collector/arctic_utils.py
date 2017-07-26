@@ -1,6 +1,6 @@
 from asyncio import set_event_loop, gather, new_event_loop
 from os.path import join
-from threading import Thread
+from multiprocessing import Process
 
 from django.conf import settings
 from django.db import IntegrityError
@@ -11,7 +11,7 @@ from clint.textui import colored
 
 from .tasks import adjustment_bureau, get_commission, file_cleaner, \
     df_multi_reader, df_multi_writer, multi_filenames, hdfone_filenames, \
-    multi_remove, nonasy_df_multi_reader, name_decosntructor
+    multi_remove, nonasy_df_multi_reader, name_deconstructor
 from .models import Indicators, Systems, Symbols
 from _private.strategies import ExportedIndicators, ExportedSystems
 
@@ -108,13 +108,17 @@ def data_model_csv():
             filename=filename) for filename in filenames], return_exceptions=True
         ))
 
+    processes = []
     for cpu in range(settings.CPUS):
         if (cpu+1) == settings.CPUS:
-            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size+diff]))
+            p = Process(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size+diff]))
         else:
-            t = Thread(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size]))
-        t.start()
-        t.join()
+            p = Process(target=start_loop, args=(new_event_loop(), filenames[cpu*batch_size:(cpu+1)*batch_size]))
+        processes.append(p)
+        p.start()
+
+    for p in processes:
+        p.join()
 
 
 class IndicatorBase(ExportedIndicators):
@@ -149,7 +153,7 @@ class IndicatorBase(ExportedIndicators):
 
         for filename in self.filenames:
             try:
-                self.info = await name_decosntructor(filename=filename, t="", mc=self.mc)
+                self.info = name_deconstructor(filename=filename, t="", mc=self.mc)
 
                 file_name = join(self.path_to_history, self.info["filename"])
 
@@ -402,7 +406,7 @@ async def clean(broker: str, symbol: str, period: str, system: str, mc: bool=Fal
 
 async def perf_point(filename, path_to, mc):
     try:
-        info = await name_decosntructor(filename=filename, t="s", mc=mc)
+        info = name_deconstructor(filename=filename, t="s", mc=mc)
         
         if settings.SHOW_DEBUG:
             print("Working with {0} {1} {2}".format(info["symbol"], info["period"], info["system"]))
@@ -532,7 +536,7 @@ class SignalBase(ExportedSystems):
         await self.create_system()
 
         for filename in self.filenames:
-            self.info = await name_decosntructor(filename=filename, t="i", mc=self.mc)
+            self.info = name_deconstructor(filename=filename, t="i", mc=self.mc)
 
             #This should be improved, highly ineffiecient!!!!
             if str(self.indicator) == self.info["indicator"]:

@@ -275,7 +275,7 @@ class Signals(models.Model):
     returns = models.DecimalField(max_digits=20, decimal_places=2, verbose_name=T("Return"), default=None, blank=True, null=True)
     posted_to_twitter = models.BooleanField(default=False)
     posted_to_facebook = models.BooleanField(default=False)
-    sent_email = models.BooleanField(default=False)
+    sent_email = models.BooleanField(default=0)
 
     def __unicode__(self):
         return '%s' %(self.date_time)

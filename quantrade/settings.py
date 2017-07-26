@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 
 from raven import fetch_git_sha
-import psycopg2
+from psycopg2 import extensions
 from dotenv import load_dotenv
 
 from django.utils.translation import ugettext_lazy as T
@@ -18,7 +18,7 @@ dev_env = environ.get("DEV_ENV")
 assert isinstance(dev_env, str)
 DEV_ENV  = int(dev_env)
 VAGRANT = int(environ.get("VAGRANT"))
-CPUS = 1 #cpu_count()
+CPUS = cpu_count()
 
 DATA_TYPE = environ.get("DATA_TYPE")
 valid = ["pickle", "json", "messagepack", "feather", "hdf", "hdfone", "proto2"]
@@ -285,7 +285,8 @@ DATABASES = {
         'PORT': DATABASE_PORT,
         'ATOMIC_REQUESTS': True,
         'OPTIONS': {
-            'isolation_level': psycopg2.extensions.ISOLATION_LEVEL_SERIALIZABLE,
+            'isolation_level': extensions.ISOLATION_LEVEL_SERIALIZABLE,
+            'sslmode': 'disable',
         },
     },
 }
@@ -376,7 +377,7 @@ LOGGING = {
     },
     'handlers': {
         'file': {
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'class': 'logging.FileHandler',
             'filename': join(BASE_DIR, 'logs', 'django.log'),
             #'maxBytes': 1024 * 1024 * 10,  # 10Mb
@@ -387,7 +388,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['file'],
-            'level': 'DEBUG',
+            'level': 'ERROR',
             'propagate': True,
         },
     },

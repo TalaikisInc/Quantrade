@@ -12,7 +12,7 @@ from pandas import DataFrame
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
-from .tasks import df_multi_reader, multi_filenames, df_multi_writer, ext_drop
+from .tasks import df_multi_reader, multi_filenames, df_multi_writer, ext_drop, name_deconstructor
 from .arctic_utils import init_calcs, generate_performance
 from _private.strategies_list import indicator_processor, strategy_processor
 from .models import Stats
@@ -22,7 +22,7 @@ async def mc_maker(filename):
     try:
         size = 3000
 
-        info = await name_decosntructor(filename=filename, t="")
+        info = name_deconstructor(filename=filename, t="")
 
         file_name = join(settings.DATA_PATH, "incoming_pickled", info["filename"])
         df = await df_multi_reader(filename=file_name)
@@ -156,6 +156,7 @@ def aggregate(loop, filenames):
 
 def mc_trader(loop, batch, batch_size, filenames, t):
     filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
+    print(filenames)
     if t == "i":
         indicator_processor(mc=True, filenames=filenames)
     if t == "s":

@@ -73,7 +73,7 @@ def main():
         strategy_processor(filenames=filenames)
 
         print("Signals...")
-        generate_signals()
+        generate_signals(loop=loop)
 
         print("Signal generation tasks: %s seconds ---" % (time.time() - start_time))
 

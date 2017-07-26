@@ -15,8 +15,9 @@ double check if this still holds as the best choice; 2) to choose next best meth
 * v1-5 (Mysql, MongoDB, Postgres, InflucDB, arctic) - a from several horus to a several days.
 * v6-8 - hdf, message pack, csv
 * v9 - pickle, 10 min
-* v10 - pickle async one-thread - 6-10 min
-* v11 async + multithread
+* v10 - pickle, asyncio, one-thread - 6-10 min
+* v11 asyncio + multithread
+* v12 asyncio + multiprocess
 
 ## Test system
 
@@ -36,23 +37,28 @@ Ubuntu 16.04 under Windows 10, Pentium G3220, 16 Gb RAM.
 5) Strategies files to performance files.
 6) Performance files to stats table.
 
-## 2017-07-22
+## TODO
 
-## Pickle, v11, async + 6 cores/ on Thread, live
-
-* Hourly tasks - 740 s
-
-## 2017-07-08
+This probably should be better with registering each run time and taking the average.
 
 ## Pickle, v10, live 6 cores, all tasks
 
 * hourly tasks - 280 - 310 s
 * daily tasks - 2100 - 2400 s, usual
 
+## Pickle, v12, asyncio + multiprocessing, live
+
+* Hourly tasks - 530 s
+* Daily tasks - 2874 s
+
 ## Pickle, v9
 
 * hourly tasks - 518.62 s, 813.87 s (after other types)
 * daily tasks - 2252.88
+
+## Pickle, v11, asyncio + 6 cores/ on 6 Thread(s), live
+
+* Hourly tasks - 740 - 1000 s
 
 ## Pickle, protocol 2
 

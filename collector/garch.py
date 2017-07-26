@@ -1,7 +1,7 @@
 from os import listdir
 from os.path import join, isfile
 from datetime import datetime, timedelta, date
-import asyncio
+from asyncio import gather
 from decimal import Decimal
 
 from pandas import to_datetime, DataFrame
@@ -16,7 +16,7 @@ from django.conf import settings
 from django.template.defaultfilters import slugify
 
 from .models import GARCH, Brokers, Symbols, Periods
-from .tasks import df_multi_reader, multi_filenames, df_multi_writer, name_decosntructor, ext_drop
+from .tasks import df_multi_reader, multi_filenames, df_multi_writer, name_deconstructor, ext_drop
 
 
 async def save_garch(broker, symbol, period, change):
@@ -32,13 +32,13 @@ async def save_garch(broker, symbol, period, change):
 
 async def gtdb(filename):
     try:
-        info = await name_decosntructor(filename=filename, t="")
+        info = name_deconstructor(filename=filename, t="")
 
         broker = Brokers.objects.get(title=info["broker"])
         symbol = Symbols.objects.get(symbol=info["symbol"])
         period = Periods.objects.get(period=info["period"])
 
-        if '1440' in period_slug:
+        if '1440' in info["period"]:
             df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
@@ -54,7 +54,7 @@ async def gtdb(filename):
             await save_garch(broker=broker, symbol=symbol, period=period, change=change)
 
         #weekly
-        if '10080' in period_slug:
+        if '10080' in info["period"]:
             df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
@@ -69,7 +69,7 @@ async def gtdb(filename):
             await save_garch(broker=broker, symbol=symbol, period=period, change=change)
 
         #monthly
-        if '43200' in period_slug:
+        if '43200' in info["period"]:
             df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
             df['ts'] = df.index
             df['ts'] = to_datetime(df['ts'])
@@ -98,7 +98,7 @@ def clean_garch():
 def garch_to_db(loop):
     filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, 'garch'))
 
-    loop.run_until_complete(asyncio.gather(*[gtdb(filename=filename) for \
+    loop.run_until_complete(gather(*[gtdb(filename=filename) for \
         filename in filenames], return_exceptions=True
     ))
 
@@ -107,7 +107,7 @@ async def write_g(fl):
     mdpi = 72
     try:
         filename = join(settings.DATA_PATH, "incoming_pickled", fl)
-        filename = await ext_drop(filename=filename)
+        filename = ext_drop(filename=filename)
 
         df = await df_multi_reader(filename=filename)
 
@@ -147,12 +147,12 @@ async def write_g(fl):
                 dte+timedelta(days=5*30)])
             final = d.append(f)
 
-        info = await name_decosntructor(filename=fl, t="")
+        info = name_deconstructor(filename=fl, t="")
 
         broker = str(slugify(info["broker"])).replace('-', '_')
 
         out_filename = join(settings.DATA_PATH, 'garch', info["filename"])
-        out_filename = await ext_drop(filename=out_filename)
+        out_filename = ext_drop(filename=out_filename)
         ofl = "{0}=={1}=={2}.png".format(info["broker"], info["symbol"], info["period"])
         out_image = join(settings.STATIC_ROOT, 'collector', 'images', 'garch', ofl)
         title = "{0} {1} GJR-GARCH forecast".format(info["symbol"], info["period"])
@@ -172,6 +172,6 @@ async def write_g(fl):
 def garch(loop):
     filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
 
-    loop.run_until_complete(asyncio.gather(*[write_g(fl=fl) for fl \
+    loop.run_until_complete(gather(*[write_g(fl=fl) for fl \
         in filenames], return_exceptions=True
     ))
