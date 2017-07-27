@@ -12,7 +12,8 @@ from pandas import DataFrame
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
-from .tasks import df_multi_reader, multi_filenames, df_multi_writer, ext_drop, name_deconstructor
+from .utils import ext_drop, filename_constructor, name_deconstructor, multi_filenames, \
+    df_multi_reader, df_multi_writer
 from .arctic_utils import init_calcs, generate_performance
 from _private.strategies_list import indicator_processor, strategy_processor
 from .models import Stats
@@ -58,38 +59,33 @@ def mc(loop):
     ))
 
 
-async def img_writer(broker: str, symbol: str, period: str, system: str, direction: str) -> None:
-    broker_slug = slugify(broker).replace("-", "_")
-    img = "{0}=={1}=={2}=={3}=={4}.png".format(broker_slug, symbol, period, \
-        system, direction)
-
-    out_image = join(settings.STATIC_ROOT, "collector", "images", "mc", img)
+async def img_writer(info: dict) -> None:
+    out_image = filename_constructor(info=info, folder="mc")
     plt.savefig(out_image)
     plt.close()
 
-    stats = Stats.objects.get(broker__title=broker, symbol__symbol=symbol, \
-        period__period=period, system__title=system)
+    stats = Stats.objects.get(broker__slug=info["broker"], symbol__symbol=info["symbol"], \
+        period__period=info["period"], system__title=info["system"])
     stats.mc = "https://quantrade.co.uk/static/collector/images/mc/" + img
     stats.save()
 
     print(colored.green("Image saved {}.".format(img)))
 
 
-async def path_writer(broker: str, symbol: str, period: str, system: str, direction: str) -> None:
+async def path_writer(info: dict) -> None:
     s_paths = 0
     for path in range(100):
         try:
-            flname_construct = "{0}=={1}=={2}=={3}=={4}".format(broker, symbol, period, system, path)
-            file_name = join(settings.DATA_PATH, "monte_carlo", "performance", flname_construct)
+            file_name = filename_constructor(info=info, folder="performance", mc=True)
 
             pdf = await df_multi_reader(filename=file_name).reset_index()
             del pdf["index"]
 
             if len(pdf.index) > 0:
-                if direction == "longs":
+                if info["direction"] == "longs":
                     pdf['LONG_PL_CUMSUM'].plot()
                     pdfm = pdf['LONG_PL_CUMSUM']
-                elif direction == "shorts":
+                elif info["direction"] == "shorts":
                     pdf['SHORT_PL_CUMSUM'].plot()
                     pdfm = pdf['SHORT_PL_CUMSUM']
                 else:
@@ -101,8 +97,7 @@ async def path_writer(broker: str, symbol: str, period: str, system: str, direct
             print(colored.red("path_writer {}".format(err)))
 
     if (len(pdfm.index) > 0) & (len(s_paths) == 100):
-        out_filename = join(settings.DATA_PATH, "monte_carlo", "avg", \
-            "{0}=={1}=={2}=={3}=={4}".format(broker, symbol, period, system, direction))
+        out_filename = filename_constructor(info=info, folder="avg")
         
         #reduce by aprox. one (first) path
         pdfm = pdfm*0.99
@@ -111,7 +106,7 @@ async def path_writer(broker: str, symbol: str, period: str, system: str, direct
         await df_multi_writer(df=pdfm, out_filename=out_filename)
         print(colored.green("Average saved {}.".format(out_filename)))
 
-        await img_writer(broker=broker, symbol=symbol, period=period, system=system, direction=direction)
+        await img_writer(info=info)
 
 
 def unique_strats(filenames):
@@ -131,17 +126,16 @@ def unique_strats(filenames):
 
 async def mc_agg_point(udf, s):
     try:
-        broker = udf.ix[s]["BROKER"]
-        symbol = udf.ix[s]["SYMBOL"]
-        period = udf.ix[s]["PERIOD"]
-        system = udf.ix[s]["SYSTEM"]
-            
+        info = {}
+        info["broker"] = slugify(udf.ix[s]["BROKER"]).replace("-", "_")
+        info["symbol"] = udf.ix[s]["SYMBOL"]
+        info["period"] = udf.ix[s]["PERIOD"]
+        info["system"] = udf.ix[s]["SYSTEM"]
+
         directions = ["longs", "shorts", "longs_shorts"]
-            
         for direction in directions:
-            await path_writer(broker=broker, symbol=symbol, period=period, \
-                system=system, direction=direction)
-            
+            info["direction"] = direction
+            await path_writer(info=info)
     except Exception as err:
         print(colored.red("mc_agg_point {}".format(err)))
 
@@ -156,7 +150,7 @@ def aggregate(loop, filenames):
 
 def mc_trader(loop, batch, batch_size, filenames, t):
     filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
-    print(filenames)
+
     if t == "i":
         indicator_processor(mc=True, filenames=filenames)
     if t == "s":

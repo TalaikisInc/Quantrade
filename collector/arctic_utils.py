@@ -9,9 +9,10 @@ from pandas import read_csv, to_datetime
 from numpy import where, sum
 from clint.textui import colored
 
-from .tasks import adjustment_bureau, get_commission, file_cleaner, \
-    df_multi_reader, df_multi_writer, multi_filenames, hdfone_filenames, \
-    multi_remove, nonasy_df_multi_reader, name_deconstructor
+from .tasks import adjustment_bureau, get_commission
+from .utils import ext_drop, filename_constructor, name_deconstructor, multi_filenames, \
+    multi_remove, df_multi_reader, nonasy_df_multi_reader, df_multi_writer, \
+    file_cleaner
 from .models import Indicators, Systems, Symbols
 from _private.strategies import ExportedIndicators, ExportedSystems
 
@@ -50,14 +51,16 @@ async def symbol_cleaner(symbol, broker):
         print("At symbol cleaner {}\n".format(e))
 
 
-async def make_initial_file(path_to, filename):
+async def make_initial_file(filename):
     try:
+        info = {}
         spl = str(filename).split('_')
-        broker = spl[2]
-        symbol = spl[3]
-        period = spl[4].split('.')[0]
+        info["broker"] = spl[2]
+        info["symbol"] = spl[3]
+        info["period"] = spl[4].split('.')[0]
+        info["filename"] = filename
 
-        df = read_csv(filepath_or_buffer=join(path_to, filename), sep=',', \
+        df = read_csv(filepath_or_buffer=filename_constructor(info=info, folder="incoming"), sep=',', \
             delimiter=None, header=0, names=None, index_col=0, usecols=None, \
             squeeze=False, prefix=None, mangle_dupe_cols=True, dtype=None, \
             engine=None, converters=None, true_values=None, false_values=None, \
@@ -75,28 +78,25 @@ async def make_initial_file(path_to, filename):
             low_memory=False, buffer_lines=None, memory_map=False, \
             float_precision=None)
 
-        #make index
         df.sort_index(axis=0, ascending=True, inplace=True)
         df.index = to_datetime(df.index).to_pydatetime()
         df.index.name = "DATE_TIME"
 
-        #make some returns
-        df = await init_calcs(df=df, symbol=symbol)
-
-        out_filename = join(settings.DATA_PATH, "incoming_pickled", "{0}=={1}=={2}".format(broker, symbol, period))
+        df = await init_calcs(df=df, symbol=info["symbol"])
+        out_filename = filename_constructor(info=info, folder="incoming_pickled")
         await df_multi_writer(df=df, out_filename=out_filename)
 
         if settings.SHOW_DEBUG:
-            print(colored.green("Pickled for {0} {1}.".format(symbol, period)))
+            print(colored.green("Pickled for {0} {1}.".format(info["symbol"], info["period"])))
     except Exception as err:
-        print(colored.red("At initial {}".format(e)))
-        out_filename = join(settings.DATA_PATH, "incoming_pickled", "{0}=={1}=={2}.mp".format(broker, symbol, period))
+        print(colored.red("At initial {}".format(err)))
+        out_filename = filename_constructor(info=info, folder="incoming_pickled")
         await symbol_cleaner(symbol=symbol, broker=broker)
         await file_cleaner(filename=out_filename)
 
 
 def data_model_csv():
-    path_to = join(settings.DATA_PATH, 'incoming')
+    path_to = join(settings.DATA_PATH, "incoming")
     filenames = multi_filenames(path_to_history=path_to, csv=True)
     cnt = len(filenames)
     batch_size = int(cnt/settings.CPUS)
@@ -104,9 +104,8 @@ def data_model_csv():
 
     def start_loop(loop, filenames):
         set_event_loop(loop)
-        loop.run_until_complete(gather(*[make_initial_file(path_to=path_to, \
-            filename=filename) for filename in filenames], return_exceptions=True
-        ))
+        loop.run_until_complete(gather(*[make_initial_file(filename=filename) \
+            for filename in filenames], return_exceptions=True))
 
     processes = []
     for cpu in range(settings.CPUS):
@@ -131,7 +130,6 @@ class IndicatorBase(ExportedIndicators):
             self.path_to_history = join(settings.DATA_PATH, "monte_carlo")
         else:
             self.path_to_history = join(settings.DATA_PATH, "incoming_pickled")
-        self.excluded_symbols = ['M1']
         self.filenames = filenames
 
     async def create_indicator(self):
@@ -154,6 +152,7 @@ class IndicatorBase(ExportedIndicators):
         for filename in self.filenames:
             try:
                 self.info = name_deconstructor(filename=filename, t="", mc=self.mc)
+                self.info["indicator"] = self.name
 
                 file_name = join(self.path_to_history, self.info["filename"])
 
@@ -170,174 +169,36 @@ class IndicatorBase(ExportedIndicators):
             df = df.dropna()
 
             if self.mc:
-                out_filename = join(settings.DATA_PATH, "monte_carlo", "indicators", \
-                    "{0}=={1}=={2}=={3}=={4}".format(self.info["broker"], self.info["symbol"], \
-                    self.info["period"], self.name, self.info["path"]))
+                out_filename = filename_constructor(info=self.info, folder="indicators", mc=self.mc)
             else:
-                out_filename = join(settings.DATA_PATH, "indicators", \
-                    "{0}=={1}=={2}=={3}".format(self.info["broker"], self.info["symbol"], \
-                    self.info["period"], self.name))
+                out_filename = filename_constructor(info=self.info, folder="indicators")
 
             await df_multi_writer(df=df, out_filename=out_filename)
 
             if settings.SHOW_DEBUG:
                 print(colored.green("Saved indicator data {} to pickle.".format(out_filename)))
-            
-            if self.mc:
-                await multi_remove(filename=file_name)
+
         except Exception as err:
             print(colored.red("IndicatorBase insert {}".format(err)))
-            filename = join(settings.DATA_PATH, 'indicators', "{0}=={1}=={2}=={3}.mp".\
-                format(self.info["broker"], self.info["symbol"], self.info["period"], self.name))
+            file_name = filename_constructor(info=info, folder="indicators")
             await file_cleaner(filename=file_name)
 
 
-#TODO this also requires special case for sending and svinh signals if this would appear on systems pg
-#TODO probably just needs a separate class to handle *portfoloios* of symbols
-async def special_case(path_to, period):
-    syms = ['M1']
-    broker = 'Ava Trade EU Ltd.'
-
-    for symbol in syms:
-        try:
-            #symbol equal system
-            df = await df_multi_reader(filename=join(path_to, '{0}=={1}=={2}=={3}.mp'.format(broker, symbol, period, symbol)))
-
-            bond_commission = await get_commission('30YTBOND')
-            eu_commission = await get_commission('DJEUR50')
-            sp_commission = await get_commission('SP500')
-
-            bond_margin = float(Symbols.objects.get(broker__title=broker, symbol='30YTBOND').margin_initial)
-            eu_margin = float(Symbols.objects.get(broker__title=broker, symbol='DJEUR50').margin_initial)
-            sp_margin = float(Symbols.objects.get(broker__title=broker, symbol='SP500').margin_initial)
-
-            df['bond_commissions_long'] = where((df['BOND_SIDE'].shift() == 1) & (df['BOND_SIDE'].shift(2) == 0), bond_commission*2.0, 0)
-            df['eu_commissions_long'] = where((df['EU_SIDE'].shift() == 1) & (df['EU_SIDE'].shift(2) == 0), eu_commission*2.0, 0)
-            df['sp_commissions_long'] = where((df['SP_SIDE'].shift() == 1) & (df['SP_SIDE'].shift(2) == 0), sp_commission*2.0, 0)
-
-            df['BOND_LONG_TRADES'] = where((df['BOND_SIDE'].shift() == 1) & (df['BOND_SIDE'].shift(2) == 0), 1, 0)
-            df['EU_LONG_TRADES'] = where((df['EU_SIDE'].shift() == 1) & (df['EU_SIDE'].shift(2) == 0), 1, 0)
-            df['SP_LONG_TRADES'] = where((df['SP_SIDE'].shift() == 1) & (df['SP_SIDE'].shift(2) == 0), 1, 0)
-
-            df['BOND_LONG_PL'] = where(df['BOND_SIDE'].shift() == 1, df['BOND'] - df['bond_commissions_long'], 0)
-            df['EU_LONG_PL'] = where(df['EU_SIDE'].shift() == 1, df['EU'] - df['eu_commissions_long'], 0)
-            df['SP_LONG_PL'] = where(df['SP_SIDE'].shift() == 1, df['SP'] - df['sp_commissions_long'], 0)
-
-            df['BOND_LONG_MARGIN'] = where(df['BOND_SIDE'].shift() == 1, bond_margin, 0.0)
-            df['EU_LONG_MARGIN'] = where(df['EU_SIDE'].shift() == 1, eu_margin, 0.0)
-            df['SP_LONG_MARGIN'] = where(df['SP_SIDE'].shift() == 1, sp_margin, 0.0)
-
-            del df['bond_commissions_long']
-            del df['eu_commissions_long']
-            del df['sp_commissions_long']
-
-            df['BOND_LONG_PL_CUMSUM'] = df['BOND_LONG_PL'].cumsum()
-            df['EU_LONG_PL_CUMSUM'] = df['EU_LONG_PL'].cumsum()
-            df['SP_LONG_PL_CUMSUM'] = df['SP_LONG_PL'].cumsum()
-
-            df['bond_mae'] = await adjustment_bureau(data=df['BOND_CL'], symbol_name='30YTBOND', broker_name=broker, period_name=period)
-            df['eu_mae'] = await adjustment_bureau(data=df['EU_CL'], symbol_name='DJEUR50', broker_name=broker, period_name=period)
-            df['sp_mae'] = await adjustment_bureau(data=df['SP_CL'], symbol_name='SP500', broker_name=broker, period_name=period)
-
-            df['bond_mfe'] = await adjustment_bureau(data=df['BOND_HC'], symbol_name='30YTBOND', broker_name=broker, period_name=period)
-            df['eu_mfe'] = await adjustment_bureau(data=df['EU_HC'], symbol_name='DJEUR50', broker_name=broker, period_name=period)
-            df['sp_mfe'] = await adjustment_bureau(data=df['SP_HC'], symbol_name='SP500', broker_name=broker, period_name=period)
-
-            df.rename(columns={
-                    'bond_mae': 'MAE',
-                    'bond_mfe': 'MFE',
-                    'eu_mae': 'MAE',
-                    'eu_mfe': 'MFE',
-                    'sp_mae': 'MAE',
-                    'sp_mfe': 'MFE',
-                    'BOND': 'DIFF',
-                    'EU': 'DIFF',
-                    'SP': 'DIFF',
-                    'BOND_LONG_MARGIN': 'LONG_MARGIN',
-                    'EU_LONG_MARGIN': 'LONG_MARGIN',
-                    'SP_LONG_MARGIN': 'LONG_MARGIN',
-                    'BOND_LONG_PL_CUMSUM': 'LONG_PL_CUMSUM',
-                    'EU_LONG_PL_CUMSUM': 'LONG_PL_CUMSUM',
-                    'SP_LONG_PL_CUMSUM': 'LONG_PL_CUMSUM',
-                    'BOND_LONG_PL': 'LONG_PL',
-                    'EU_LONG_PL': 'LONG_PL',
-                    'SP_LONG_PL': 'LONG_PL',
-                    'BOND_SIDE': 'LONG_SIDE',
-                    'EU_SIDE': 'LONG_SIDE',
-                    'SP_SIDE': 'LONG_SIDE',
-                    'BOND_LONG_TRADES': 'LONG_TRADES',
-                    'EU_LONG_TRADES': 'LONG_TRADES',
-                    'SP_LONG_TRADES': 'LONG_TRADES',
-                }, inplace=True)
-
-            del df['BOND_CL']
-            del df['BOND_HC']
-            del df['EU_CL']
-            del df['EU_HC']
-            del df['SP_CL']
-            del df['SP_HC']
-
-            #sum portfolio trades
-            tmp = sum(df.LONG_MARGIN, axis=1)
-            del df['LONG_MARGIN']
-            df['LONG_MARGIN'] = tmp
-            tmp = sum(df.LONG_PL, axis=1)
-            del df['LONG_PL']
-            df['LONG_PL'] = tmp
-            tmp = sum(df.LONG_PL_CUMSUM, axis=1)
-            del df['LONG_PL_CUMSUM']
-            df['LONG_PL_CUMSUM'] = tmp
-            tmp = sum(df.LONG_TRADES, axis=1)
-            del df['LONG_TRADES']
-            df['LONG_TRADES'] = tmp
-            tmp = sum(df.MAE, axis=1)
-            del df['MAE']
-            df['MAE'] = tmp
-            tmp = sum(df.MFE, axis=1)
-            del df['MFE']
-            df['MFE'] = tmp
-            tmp = sum(df.LONG_SIDE, axis=1)
-            del df['LONG_SIDE']
-            df['LONG_SIDE'] = tmp
-            tmp = sum(df.DIFF, axis=1)
-            del df['DIFF']
-            df['DIFF'] = tmp
-
-            df['mae_tmp_long'] = where(df['LONG_SIDE'].shift() == 1, df['MAE'], 0.0)
-            df['mfe_tmp_long'] = where(df['LONG_SIDE'].shift() == 1, df['MFE'], 0.0)
-
-            df['LONG_MAE'] = df['LONG_PL_CUMSUM'] - df['mae_tmp_long']
-            df['LONG_MFE'] = df['LONG_PL_CUMSUM'] + df['mfe_tmp_long']
-
-            df['LONG_DIFF_CUMSUM'] = df['DIFF'].cumsum()
-
-            df = df.dropna()
-
-            del df['mae_tmp_long']
-            del df['mfe_tmp_long']
-
-            out_filename = join(settings.DATA_PATH, 'performance', \
-                "{0}=={1}=={2}=={3}".format(broker, symbol, period, symbol))
-
-            await df_multi_writer(df=df, out_filename=out_filename)
-            
-            if settings.SHOW_DEBUG:
-                print("Saved performance {} to pickle.".format(filename))
-        except Exception as e:
-            print("At special case performance {}".format(e))
-
-
-async def get_margin(broker, symbol):
+async def get_margin(broker: str, symbol: str) -> float:
     """
     Get margin for a symbol.
     """
+    print("at margin")
+    print(broker)
+    print(symbol)
     try:
         margin = float(Symbols.objects.get(broker__title=broker, \
             symbol=symbol).margin_initial)
-    except:
-        margin = None
-    
-    return margin
+
+        return margin
+
+    except Exception as err:
+        print(colored.red("get_margin {}".format(err)))
 
 
 async def long_short(system, commission, margin, df):
@@ -392,12 +253,12 @@ async def maes(system, df):
     return df
 
 
-async def clean(broker: str, symbol: str, period: str, system: str, mc: bool=False) -> None:
+async def clean(info: dict, mc: bool=False) -> None:
     try:
         if not mc:
             folders = ['performance', 'systems']
             for folder in folders:
-                out_filename = join(settings.DATA_PATH, folder, "{0}=={1}=={2}=={3}.mp".format(broker, symbol, period, system))
+                out_filename = filename_constructor(info=info, folder=folder)
                 await file_cleaner(filename=out_filename)
     except Exception as err:
         if settings.SHOW_DEBUG:
@@ -412,7 +273,11 @@ async def perf_point(filename, path_to, mc):
             print("Working with {0} {1} {2}".format(info["symbol"], info["period"], info["system"]))
 
         margin = await get_margin(broker=info["broker"], symbol=info["symbol"])
-        commission = await get_commission(symb=info["symbol"])
+        commission = await get_commission(symb=info["symbol"], broker=info["broker"])
+        print("com commission")
+        print(commission)
+        print("margin")
+        print(margin)
 
         if (not commission is None) & (not margin is None):
             if commission > 0:
@@ -457,12 +322,9 @@ async def perf_point(filename, path_to, mc):
                     del df['mfe_tmp_short']
 
                     if mc:
-                        out_filename = join(settings.DATA_PATH, 'monte_carlo', 'performance', \
-                            "{0}=={1}=={2}=={3}=={4}".format(info["broker"], info["symbol"], \
-                            info["period"], info["system"], info["path"]))
+                        out_filename = filename_constructor(info=info, folder="performance", mc=mc)
                     else:
-                        out_filename = join(settings.DATA_PATH, 'performance', "{0}=={1}=={2}=={3}".format(\
-                            info["broker"], info["symbol"], info["period"], info["system"]))
+                        out_filename = filename_constructor(info=info, folder="performance")
 
                     await df_multi_writer(df=df, out_filename=out_filename)
                         
@@ -471,34 +333,27 @@ async def perf_point(filename, path_to, mc):
                     if mc:
                         await multi_remove(filename=join(path_to, info["filename"]))
                 else:
-                    await clean(broker=info["broker"], symbol=info["symbol"], period=info["period"], system=info["system"], mc=mc)
+                    await clean(info=info, mc=mc)
             else:
-                await clean(broker=info["broker"], symbol=info["symbol"], period=info["period"], system=info["system"], mc=mc)
+                await clean(info=info, mc=mc)
         else:
-            await clean(broker=info["broker"], symbol=info["symbol"], period=info["period"], system=info["system"], mc=mc)
+            await clean(info=info, mc=mc)
     except Exception as err:
         print(colored.red("At generating performance {}".format(err)))
 
 
 def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
     """
-    Doesn't implement hdfone.
+    Generates performance numbers from systems.
     """
     path_to = join(settings.DATA_PATH, "systems")
     if mc:
-        filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
+        #filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
         path_to = join(settings.DATA_PATH, "monte_carlo", "systems")
 
     loop.run_until_complete(gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
         for filename in filenames if 'M1' not in filename], return_exceptions=True
     ))
-
-    #special cases
-    #no longer used
-    #periods = ['1440', '10080', '43200']
-    #loop.run_until_complete(gather(*[special_case(path_to=path_to, period=period) \
-        #for period in periods], return_exceptions=True
-    #))
 
 
 class SignalBase(ExportedSystems):
@@ -514,7 +369,6 @@ class SignalBase(ExportedSystems):
             self.path_to_history = join(settings.DATA_PATH, "monte_carlo", "indicators")
         else:
             self.path_to_history = join(settings.DATA_PATH, "indicators")
-        self.excluded_symbols = ['M1']
         self.filenames = filenames
 
     async def create_system(self):
@@ -536,40 +390,34 @@ class SignalBase(ExportedSystems):
         await self.create_system()
 
         for filename in self.filenames:
-            self.info = name_deconstructor(filename=filename, t="i", mc=self.mc)
+            self.info = name_deconstructor(filename=filename, t="", mc=self.mc)
+            self.info["indicator"] = self.indicator
+            self.info["system"] = self.name
 
-            #This should be improved, highly ineffiecient!!!!
-            if str(self.indicator) == self.info["indicator"]:
-                file_name = join(self.path_to_history, self.info["filename"])
+            file_name = filename_constructor(info=self.info, folder="indicators")
+            df = nonasy_df_multi_reader(filename=file_name)
 
-                df = nonasy_df_multi_reader(filename=file_name)
-
-                await self.signals(df=df, file_name=file_name)
+            await self.signals(df=df, file_name=file_name)
 
     async def insert(self, df, file_name):
         try:
             df = df.dropna()
 
             if self.mc:
-                out_filename = join(settings.DATA_PATH, "monte_carlo", "systems", "{0}=={1}=={2}=={3}=={4}".\
-                    format(self.info["broker"], self.info["symbol"], self.info["period"], self.name, self.info["path"]))
+                out_filename = filename_constructor(info=self.info, folder="systems", mc=self.mc)
             else:
-                out_filename = join(settings.DATA_PATH, "systems", "{0}=={1}=={2}=={3}".format(self.info["broker"], \
-                    self.info["symbol"], self.info["period"], self.name))
+                out_filename = filename_constructor(info=self.info, folder="systems")
             
             await df_multi_writer(df=df, out_filename=out_filename)
             if not self.mc:
-                json_filename = join(settings.DATA_PATH, "systems", "json", "{0}=={1}=={2}=={3}.json".format(self.info["broker"], \
-                        self.info["symbol"], self.info["period"], self.name))
+                json_filename = filename_constructor(info=self.info, folder="json")
                 df.to_json(json_filename, orient="table")
-
-            if self.mc:
+            else:
                 await multi_remove(filename=file_name)
 
             if settings.SHOW_DEBUG:
                 print(colored.green("Saved system signals {} to pickle.".format(out_filename)))
         except Exception as err:
             print(colored.red("SystemBase insert  {}".format(err)))
-            filename = join(settings.DATA_PATH, 'systems', "{0}=={1}=={2}=={3}.mp".format(self.info["broker"], \
-                self.info["symbol"], self.info["period"], self.name))
+            filename = filename_constructor(info=self.info, folder="systems")
             await file_cleaner(filename=filename)

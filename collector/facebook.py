@@ -7,7 +7,7 @@ from django.utils.html import strip_tags
 import facebook
 from clint.textui import colored
 
-from .models import (Signals, QtraUser, Brokers)
+from .models import Signals, QtraUser, Brokers
 
 
 def signal_poster(api, signal, strings):

@@ -1,6 +1,6 @@
-import asyncio
-import argparse
-import time
+from asyncio import set_event_loop_policy, get_event_loop
+from argparse import ArgumentParser
+from time import time
 from os import environ, name
 from os.path import join
 
@@ -15,10 +15,14 @@ from django.core.mail import send_mail
 from collector.mysql_utils import mysql_setup, mysql_tables, drop_db, \
     mysql_connect_db
 from collector.tasks import create_periods, create_symbols, create_commissions,\
-    symbol_data_to_postgres, generate_stats, generate_signals, generate_keys,\
-    pickle_to_svc, make_images, generate_remote_files, generate_correlations,\
-    data_checker, generate_monthly_heatmaps, quandl_process, generate_qindex,\
-    process_urls_to_db, min_variance, create_folders, multi_filenames, hdfone_filenames
+    symbol_data_to_postgres, generate_keys, pickle_to_svc, \
+    generate_remote_files, data_checker, quandl_process #, min_variance
+from collector.indexes import generate_qindex
+from collector.send_signals import generate_signals
+from collector.stats import generate_stats
+from collector.imaging import make_images, generate_monthly_heatmaps, process_urls_to_db
+from collector.corr import generate_correlations
+from collector.utils import multi_filenames, hdfone_filenames, create_folders
 from collector.facebook import face_publish, heatmap_to_facebook
 from collector.twitter import post_tweets, heatmap_to_twitter
 from collector.garch import (garch, garch_to_db, clean_garch)
@@ -27,7 +31,7 @@ from collector.mc import mc, mc_trader
 from _private.strategies_list import indicator_processor, strategy_processor
 
 
-parser = argparse.ArgumentParser(description="Quantrade tasks")
+parser = ArgumentParser(description="Quantrade tasks")
 parser.add_argument('--hourly')
 parser.add_argument('--daily')
 parser.add_argument('--monthly')
@@ -40,11 +44,11 @@ args = parser.parse_args()
 
 def main():
     if not name is 'nt':
-        asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    loop = asyncio.get_event_loop()
+        set_event_loop_policy(uvloop.EventLoopPolicy())
+    loop = get_event_loop()
 
     if args.hourly:
-        start_time = time.time()
+        start_time = time()
 
         print("Collecting data...")
         generate_remote_files()
@@ -54,6 +58,8 @@ def main():
 
         print("Initial pickling...")
         data_model_csv()
+
+        print("Quandl...")
         quandl_process(loop=loop)
 
         print("Indicators...")
@@ -65,7 +71,7 @@ def main():
         indicator_processor(filenames=filenames)
 
         print("Strategies...")
-        path_to = join(settings.DATA_PATH, "indicators")
+        path_to = join(settings.DATA_PATH, "incoming_pickled")
         if settings.DATA_TYPE == "hdfone":
             filenames = hdfone_filenames(folder="incoming_pickled", path_to=path_to)
         else:
@@ -75,11 +81,11 @@ def main():
         print("Signals...")
         generate_signals(loop=loop)
 
-        print("Signal generation tasks: %s seconds ---" % (time.time() - start_time))
+        print("Signal generation tasks: %s seconds ---" % (time() - start_time))
 
     if args.daily:
         dbsql = mysql_connect_db()
-        start_time = time.time()
+        start_time = time()
 
         print("Creating symbols...")
         create_symbols(loop=loop)
@@ -116,21 +122,21 @@ def main():
         garch(loop=loop)
         garch_to_db(loop=loop)
 
-        print("Daily tasks: %s seconds ---" % (time.time() - start_time))
+        print("Daily tasks: %s seconds ---" % (time() - start_time))
 
     if args.monthly:
-        start_time = time.time()
+        start_time = time()
         generate_correlations(loop=loop)
         generate_monthly_heatmaps(loop=loop)
         make_images(loop=loop)
         process_urls_to_db(loop=loop)
-        print("Monthly tasks: %s seconds ---" % (time.time() - start_time))
+        print("Monthly tasks: %s seconds ---" % (time() - start_time))
 
     if args.csv:
         pickle_to_svc(folder=args.csv, loop=loop)
 
-    if args.minvar:
-        min_variance(loop=loop)
+    #if args.minvar:
+        #min_variance(loop=loop)
 
     if args.setup:
         dbsql = mysql_connect_db()
@@ -145,15 +151,16 @@ def main():
 
     if args.mc:
         batch_size = 100
-        #mc(loop=loop)
         """
+        mc(loop=loop)
+
         path_to = join(settings.DATA_PATH, "monte_carlo")
         filenames = multi_filenames(path_to_history=path_to)
         batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="i")
-        
-        path_to = join(settings.DATA_PATH, "monte_carlo", "indicators")
+
+        path_to = join(settings.DATA_PATH, "monte_carlo")
         filenames = multi_filenames(path_to_history=path_to)
         batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
@@ -162,7 +169,9 @@ def main():
         path_to = join(settings.DATA_PATH, 'monte_carlo', 'systems')
         filenames = multi_filenames(path_to_history=path_to)
         batches = int(len(filenames)/batch_size)+2
+        print("Batches from systems to performance: {}".format(batches))
         for b in range(batches):
+            print("Batch: {}".format(b))
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="p")
         """
         path_to = join(settings.DATA_PATH, "monte_carlo", "performance")

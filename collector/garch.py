@@ -16,7 +16,8 @@ from django.conf import settings
 from django.template.defaultfilters import slugify
 
 from .models import GARCH, Brokers, Symbols, Periods
-from .tasks import df_multi_reader, multi_filenames, df_multi_writer, name_deconstructor, ext_drop
+from .utils import ext_drop, filename_constructor, name_deconstructor, multi_filenames, \
+    multi_remove, df_multi_reader, nonasy_df_multi_reader, df_multi_writer
 
 
 async def save_garch(broker, symbol, period, change):
@@ -153,8 +154,7 @@ async def write_g(fl):
 
         out_filename = join(settings.DATA_PATH, 'garch', info["filename"])
         out_filename = ext_drop(filename=out_filename)
-        ofl = "{0}=={1}=={2}.png".format(info["broker"], info["symbol"], info["period"])
-        out_image = join(settings.STATIC_ROOT, 'collector', 'images', 'garch', ofl)
+        out_image = filename_constructor(info=info, folder="garch")
         title = "{0} {1} GJR-GARCH forecast".format(info["symbol"], info["period"])
 
         await df_multi_writer(df=final, out_filename=out_filename)

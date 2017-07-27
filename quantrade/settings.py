@@ -18,7 +18,7 @@ dev_env = environ.get("DEV_ENV")
 assert isinstance(dev_env, str)
 DEV_ENV  = int(dev_env)
 VAGRANT = int(environ.get("VAGRANT"))
-CPUS = cpu_count()
+CPUS = 2#cpu_count()
 
 DATA_TYPE = environ.get("DATA_TYPE")
 valid = ["pickle", "json", "messagepack", "feather", "hdf", "hdfone", "proto2"]
@@ -254,10 +254,10 @@ MIN_YEARLY = 15.0
 LIMIT_MONTHS = '72M'
 LIMIT_ENABLED = True
 LIMIT_STRATEGIES_FOR_NON_CUSTOMERS = 5
-VERSION = '0.10.55-beta'
+VERSION = '0.15-beta'
 
 MACHINE_USERNAME = 'Quantrade'
-FEED_DAYS_TO_SHOW = 90
+FEED_DAYS_TO_SHOW = 30
 
 USER_KEY_SYMBOLS = 31
 
