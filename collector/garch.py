@@ -1,6 +1,6 @@
 from os import listdir
 from os.path import join, isfile
-from datetime import datetime, timedelta, date
+from datetime import datetime, date, timedelta
 from asyncio import gather
 from decimal import Decimal
 
@@ -35,54 +35,58 @@ async def gtdb(filename):
     try:
         info = name_deconstructor(filename=filename, t="")
 
-        broker = Brokers.objects.get(title=info["broker"])
-        symbol = Symbols.objects.get(symbol=info["symbol"])
-        period = Periods.objects.get(period=info["period"])
+        try:
+            symbol = Symbols.objects.get(symbol=info["symbol"])
+            broker = Brokers.objects.get(title=info["broker"])
+            period = Periods.objects.get(period=info["period"])
+        except:
+            pass
+        
+        if not symbol is None:
+            if '1440' in info["period"]:
+                df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
+                df['ts'] = df.index
+                df['ts'] = to_datetime(df['ts'])
 
-        if '1440' in info["period"]:
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
-            df['ts'] = df.index
-            df['ts'] = to_datetime(df['ts'])
+                yesterday = df.ix[(datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")]
+                today = df.ix[datetime.now().strftime("%Y-%m-%d")]
+                tomorrow = df.ix[(datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")]
 
-            yesterday = df.ix[(datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")]
-            today = df.ix[datetime.now().strftime("%Y-%m-%d")]
-            tomorrow = df.ix[(datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")]
+                change = tomorrow.values[0]*100 - yesterday.values[0]*100
+                if settings.SHOW_DEBUG:
+                    print("Day change {}".format(change))
 
-            change = tomorrow.values[0]*100 - yesterday.values[0]*100
-            if settings.SHOW_DEBUG:
-                print("Day change {}".format(change))
+                await save_garch(broker=broker, symbol=symbol, period=period, change=change)
 
-            await save_garch(broker=broker, symbol=symbol, period=period, change=change)
+            #weekly
+            if '10080' in info["period"]:
+                df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
+                df['ts'] = df.index
+                df['ts'] = to_datetime(df['ts'])
 
-        #weekly
-        if '10080' in info["period"]:
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
-            df['ts'] = df.index
-            df['ts'] = to_datetime(df['ts'])
+                this_week = df.ix[-6]
+                next_week = df.ix[-5]
 
-            this_week = df.ix[-6]
-            next_week = df.ix[-5]
+                change = next_week.values[0]*100 - this_week.values[0]*100
+                if settings.SHOW_DEBUG:
+                    print("Week change {}".format(change))
 
-            change = next_week.values[0]*100 - this_week.values[0]*100
-            if settings.SHOW_DEBUG:
-                print("Week change {}".format(change))
+                await save_garch(broker=broker, symbol=symbol, period=period, change=change)
 
-            await save_garch(broker=broker, symbol=symbol, period=period, change=change)
+            #monthly
+            if '43200' in info["period"]:
+                df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
+                df['ts'] = df.index
+                df['ts'] = to_datetime(df['ts'])
 
-        #monthly
-        if '43200' in info["period"]:
-            df = await df_multi_reader(filename=join(settings.DATA_PATH, 'garch', info["filename"]))
-            df['ts'] = df.index
-            df['ts'] = to_datetime(df['ts'])
+                this_month = df.ix[-6]
+                next_month = df.ix[-5]
 
-            this_month = df.ix[-6]
-            next_month = df.ix[-5]
+                change = next_month.values[0]*100 - this_month.values[0]*100
+                if settings.SHOW_DEBUG:
+                    print("Month change {}".format(change))
 
-            change = next_month.values[0]*100 - this_month.values[0]*100
-            if settings.SHOW_DEBUG:
-                print("Month change {}".format(change))
-
-            await save_garch(broker=broker, symbol=symbol, period=period, change=change)
+                await save_garch(broker=broker, symbol=symbol, period=period, change=change)
     except Exception as e:
         print(colored.red("At garch gtdb {}".format(e)))
 
@@ -150,10 +154,9 @@ async def write_g(fl):
 
         info = name_deconstructor(filename=fl, t="")
 
-        broker = str(slugify(info["broker"])).replace('-', '_')
-
         out_filename = join(settings.DATA_PATH, 'garch', info["filename"])
         out_filename = ext_drop(filename=out_filename)
+        info["broker"] = str(slugify(info["broker"])).replace("-", "_")
         out_image = filename_constructor(info=info, folder="garch")
         title = "{0} {1} GJR-GARCH forecast".format(info["symbol"], info["period"])
 

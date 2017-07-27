@@ -1,13 +1,14 @@
 from asyncio import gather
-from datetime import datetime
+from datetime import datetime, date
+from os.path import join
 
 from clint.textui import colored
 from pandas import date_range, concat
 
 from django.conf import settings
 
-from .models import Stats
-from .utils import nonasy_df_multi_reader, filename_constructor
+from .models import Stats, Brokers
+from .utils import nonasy_df_multi_reader, filename_constructor, nonasy_df_multi_writer
 
 
 def qindex(broker):
@@ -30,6 +31,7 @@ async def collect_idx_dfs(df):
 
 def generate_qindex(loop):
     try:
+        brokers = Brokers.objects.all()
         for broker in brokers:
             print("Going to make index for {}".format(broker.title))
             idx = qindex(broker=broker)

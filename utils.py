@@ -87,7 +87,7 @@ def main():
         dbsql = mysql_connect_db()
         start_time = time()
 
-        print("Creating symbols...")
+        print("Create symbols...")
         create_symbols(loop=loop)
 
         print("Updating symbol details...")
@@ -126,10 +126,19 @@ def main():
 
     if args.monthly:
         start_time = time()
+
+        print("Correlations...")
         generate_correlations(loop=loop)
+
+        print("Heatmaps...")
         generate_monthly_heatmaps(loop=loop)
+
+        print("Strategy imgs...")
         make_images(loop=loop)
+
+        print("Images urls to db...")
         process_urls_to_db(loop=loop)
+
         print("Monthly tasks: %s seconds ---" % (time() - start_time))
 
     if args.csv:
@@ -150,7 +159,7 @@ def main():
         create_symbols(loop=loop)
 
     if args.mc:
-        batch_size = 100
+        batch_size = 1000
         """
         mc(loop=loop)
 
@@ -165,7 +174,6 @@ def main():
         batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="s")
-        """
         path_to = join(settings.DATA_PATH, 'monte_carlo', 'systems')
         filenames = multi_filenames(path_to_history=path_to)
         batches = int(len(filenames)/batch_size)+2
@@ -174,12 +182,12 @@ def main():
             print("Batch: {}".format(b))
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="p")
         """
-        path_to = join(settings.DATA_PATH, "monte_carlo", "performance")
+        path_to = "/mnt/d/performance"
+        #join(settings.DATA_PATH, "monte_carlo", "performance")
         filenames = multi_filenames(path_to_history=path_to)
         batches = int(len(filenames)/batch_size)+2
         for b in range(batches):
             mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="a")
-        """
 
     loop.close()
 

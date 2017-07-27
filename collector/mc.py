@@ -13,7 +13,7 @@ from django.template.defaultfilters import slugify
 from django.conf import settings
 
 from .utils import ext_drop, filename_constructor, name_deconstructor, multi_filenames, \
-    df_multi_reader, df_multi_writer
+    df_multi_writer, nonasy_df_multi_reader
 from .arctic_utils import init_calcs, generate_performance
 from _private.strategies_list import indicator_processor, strategy_processor
 from .models import Stats
@@ -26,7 +26,7 @@ async def mc_maker(filename):
         info = name_deconstructor(filename=filename, t="")
 
         file_name = join(settings.DATA_PATH, "incoming_pickled", info["filename"])
-        df = await df_multi_reader(filename=file_name)
+        df = nonasy_df_multi_reader(filename=file_name)
 
         try:
             close= df.CLOSE.diff().dropna()
@@ -73,13 +73,16 @@ async def img_writer(info: dict) -> None:
 
 
 async def path_writer(info: dict) -> None:
-    s_paths = 0
-    for path in range(100):
-        try:
+    try:
+        print(info)
+        s_paths = 0
+        for path in range(100):
+            info["path"] = path
             file_name = filename_constructor(info=info, folder="performance", mc=True)
 
-            pdf = await df_multi_reader(filename=file_name).reset_index()
+            pdf = nonasy_df_multi_reader(filename=file_name).reset_index()
             del pdf["index"]
+            print(pdf.tail())
 
             if len(pdf.index) > 0:
                 if info["direction"] == "longs":
@@ -93,20 +96,20 @@ async def path_writer(info: dict) -> None:
                     pdfm = (pdf['LONG_PL_CUMSUM']+pdf['SHORT_PL_CUMSUM'])
                 pdfm += pdfm
                 s_paths += 1
-        except Exception as err:
-            print(colored.red("path_writer {}".format(err)))
 
-    if (len(pdfm.index) > 0) & (len(s_paths) == 100):
-        out_filename = filename_constructor(info=info, folder="avg")
-        
-        #reduce by aprox. one (first) path
-        pdfm = pdfm*0.99
-        (pdfm/100).plot(lw=3, color='r')
-                
-        await df_multi_writer(df=pdfm, out_filename=out_filename)
-        print(colored.green("Average saved {}.".format(out_filename)))
+        if (len(pdfm.index) > 0) & (len(s_paths) == 100):
+            out_filename = filename_constructor(info=info, folder="avg")
+            
+            #reduce by aprox. one (first) path
+            pdfm = pdfm*0.99
+            (pdfm/100).plot(lw=3, color='r')
+                    
+            await df_multi_writer(df=pdfm, out_filename=out_filename)
+            print(colored.green("Average saved {}.".format(out_filename)))
 
-        await img_writer(info=info)
+            await img_writer(info=info)
+    except Exception as err:
+        print(colored.red("path_writer {}".format(err)))
 
 
 def unique_strats(filenames):
@@ -144,8 +147,7 @@ def aggregate(loop, filenames):
     udf = unique_strats(filenames=filenames)
 
     loop.run_until_complete(gather(*[mc_agg_point(udf=udf, s=s) for \
-        s in range(len(udf.index))], return_exceptions=True
-    ))
+        s in range(len(udf.index))], return_exceptions=True))
 
 
 def mc_trader(loop, batch, batch_size, filenames, t):
@@ -158,4 +160,4 @@ def mc_trader(loop, batch, batch_size, filenames, t):
     if t == "p":
         generate_performance(loop=loop, mc=True, filenames=filenames)
     if t == "a":
-        aggregate(filenames=filenames)
+        aggregate(loop=loop, filenames=filenames)

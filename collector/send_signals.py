@@ -1,6 +1,6 @@
 from asyncio import gather
 from typing import List, TypeVar
-from datetime import date
+from datetime import date, datetime
 
 from clint.textui import colored
 from pandas import to_datetime
@@ -27,8 +27,8 @@ async def update_signal_sent_status(user, strategy, direction, df, i):
         s.save()
         if settings.SHOW_DEBUG:
             print(colored.green("Updated signal status."))
-    except Exception as e:
-        print(colored.red("At signal status update {}".format(e)))
+    except Exception as err:
+        print(colored.red("At signal status update {}".format(err)))
 
 
 async def send_signal(strategy, strings, df, i, user, direction):

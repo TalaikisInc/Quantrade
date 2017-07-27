@@ -14,8 +14,8 @@ warnings.simplefilter("ignore")
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
-from .models import Stats
-from .utils import multi_filenames, name_deconstructor, ext_drop, df_multi_reader
+from .models import Stats, Brokers
+from .utils import multi_filenames, name_deconstructor, ext_drop, df_multi_reader, filename_constructor
 
 
 async def make_strat_image(info, data):
@@ -68,18 +68,20 @@ async def make_strat_image(info, data):
         print(colored.red("At make_strat_image {}".format(err)))
 
 
-async def make_image(filename):
+async def make_image(path_to, filename):
     try:
-        info = name_deconstructor(filename=filename, t="s")
-        info["broker"] = slugify(info["broker"]).replace('-', '_')
-        info["direction"] = "longs"
-        image_filename = filename_constructor(info=info, folder="meta")
-        data = await df_multi_reader(filename=join(path_to, info["filename"]))
-        data = data.loc[data['CLOSE'] != 0]
+        data = await df_multi_reader(filename=join(path_to, filename))
 
-        if (not isfile(image_filename)) | (datetime.fromtimestamp(getmtime(image_filename)) < \
-                (datetime.now() - timedelta(days=30))):
-            await make_strat_image(info=info, data=data)
+        if len(data.index) > 0:
+            info = name_deconstructor(filename=filename, t="s")
+            info["broker"] = slugify(info["broker"]).replace('-', '_')
+            info["direction"] = "longs"
+            image_filename = filename_constructor(info=info, folder="meta")
+            data = data.loc[data['CLOSE'] != 0]
+
+            if (not isfile(image_filename)) | (datetime.fromtimestamp(getmtime(image_filename)) < \
+                    (datetime.now() - timedelta(days=30))):
+                await make_strat_image(info=info, data=data)
     except Exception as err:
         print(colored.red("At making images {}\n".format(err)))
 
@@ -88,7 +90,8 @@ def make_images(loop):
     path_to = join(settings.DATA_PATH, "performance")
     filenames = multi_filenames(path_to_history=path_to)
 
-    loop.run_until_complete(gather(*[make_image(filename=filename) for filename in filenames], \
+    loop.run_until_complete(gather(*[make_image(path_to=path_to, \
+        filename=filename) for filename in filenames], \
         return_exceptions=True))
 
 
@@ -176,7 +179,9 @@ async def convert_to_perc(data, info):
             print("Account minimum {}".format(acc_min))
         p = (data / float(acc_min)) * 100.0
     except Exception as err:
-        print(colored.red("At convert_to_perc {}".format(err)))
+        if settings.SHOW_DEBUG:
+            print(colored.red("At convert_to_perc {}".format(err)))
+        p = None
 
     return p
 
@@ -191,11 +196,12 @@ async def qindex_heatmap(broker):
 
         info["direction"] = 1
         returns = await convert_to_perc(data=data.last('108M').LONG_PL, info=info)
-        returns.columns = ['LONG_PL']
 
-        if (not isfile(image_filename)) | (datetime.fromtimestamp(getmtime(image_filename)) < \
-                (datetime.now() - timedelta(days=30))):
-            await save_qindex_heatmap(data=returns, image_filename=image_filename)
+        if not returns is None:
+            returns.columns = ['LONG_PL']
+            if (not isfile(image_filename)) | (datetime.fromtimestamp(getmtime(image_filename)) < \
+                    (datetime.now() - timedelta(days=30))):
+                await save_qindex_heatmap(data=returns, image_filename=image_filename)
         await make_yearly_returns(returns=returns, info=info)
     except Exception as err:
         print(colored.red("At qindex_heatmap {}".format(err)))
@@ -262,15 +268,15 @@ async def make_heat_img(path_to, filename):
             info["direction"] = 0
             long_short = await convert_to_perc(data=(df.LONG_PL + df.SHORT_PL), info=info)
 
-            if not (longs is None):
+            if not longs is None:
                 info["direction"] = "longs"
                 await save_heatmap(data=longs, info=info)
                 await make_yearly_returns(returns=longs, info=info)
-            if not (shorts is None):
+            if not shorts is None:
                 info["direction"] = "shorts"
                 await save_heatmap(data=longs, info=info)
                 await make_yearly_returns(returns=longs, info=info)
-            if not (long_short is None):
+            if not long_short is None:
                 info["direction"] = "longs_shorts"
                 await save_heatmap(data=longs, info=info)
                 await make_yearly_returns(returns=longs, info=info)
@@ -280,6 +286,7 @@ async def make_heat_img(path_to, filename):
 
 
 def generate_monthly_heatmaps(loop):
+    brokers = Brokers.objects.all()
     path_to = join(settings.DATA_PATH, "performance")
     filenames = multi_filenames(path_to_history=path_to)
 

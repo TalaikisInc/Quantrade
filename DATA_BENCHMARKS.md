@@ -43,22 +43,22 @@ This probably should be better with registering each run time and taking the ave
 
 ## Pickle, v10, live 6 cores, all tasks
 
-* hourly tasks - 280 - 310 s
+* hourly tasks - 280 - 310 s, w/o systems -> json
 * daily tasks - 2100 - 2400 s, usual
 
 ## Pickle, v12, asyncio + multiprocessing, live
 
-* Hourly tasks - 530 s
-* Daily tasks - 2874 s
+* Hourly tasks - 500 - 550 s, with systems -> json
+* Daily tasks - 2100 s
 
 ## Pickle, v9
 
-* hourly tasks - 518.62 s, 813.87 s (after other types)
+* hourly tasks - 518.62 s, 813.87 s (after other types), with systems -> json
 * daily tasks - 2252.88
 
 ## Pickle, v11, asyncio + 6 cores/ on 6 Thread(s), live
 
-* Hourly tasks - 740 - 1000 s
+* Hourly tasks - 740 - 1000 s, with json
 
 ## Pickle, protocol 2
 

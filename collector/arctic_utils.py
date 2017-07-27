@@ -188,17 +188,14 @@ async def get_margin(broker: str, symbol: str) -> float:
     """
     Get margin for a symbol.
     """
-    print("at margin")
-    print(broker)
-    print(symbol)
     try:
-        margin = float(Symbols.objects.get(broker__title=broker, \
-            symbol=symbol).margin_initial)
+        margin = float(Symbols.objects.get(symbol=symbol).margin_initial)
 
         return margin
 
     except Exception as err:
-        print(colored.red("get_margin {}".format(err)))
+        if settings.SHOW_DEBUG:
+            print(colored.red("get_margin {}".format(err)))
 
 
 async def long_short(system, commission, margin, df):
@@ -262,7 +259,7 @@ async def clean(info: dict, mc: bool=False) -> None:
                 await file_cleaner(filename=out_filename)
     except Exception as err:
         if settings.SHOW_DEBUG:
-            print(colored.red("Ar perf point {}".format(err)))
+            print(colored.red("clean {}".format(err)))
 
 
 async def perf_point(filename, path_to, mc):
@@ -274,10 +271,6 @@ async def perf_point(filename, path_to, mc):
 
         margin = await get_margin(broker=info["broker"], symbol=info["symbol"])
         commission = await get_commission(symb=info["symbol"], broker=info["broker"])
-        print("com commission")
-        print(commission)
-        print("margin")
-        print(margin)
 
         if (not commission is None) & (not margin is None):
             if commission > 0:

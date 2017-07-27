@@ -11,6 +11,7 @@ from multiprocessing import Process
 import quandl
 from pandas import to_datetime, read_csv
 from clint.textui import colored
+from numpy import power
 
 from django.db import IntegrityError
 from django.core.mail import send_mail
@@ -318,7 +319,7 @@ def create_symbol_postgres(name, broker):
                 broker_id = Brokers.objects.get(title=broker)
                 symbol = Symbols.objects.create(symbol=name, broker=broker_id)
                 symbol.save()
-                print("Created symbol at Postgres.")
+                print(colored.green("Created symbol at Postgres."))
     except IntegrityError:
         pass
     except Exception as e:
@@ -518,8 +519,8 @@ async def process_commissions(symbol, multiplied_symbols):
 
         symbol.commission = value
         symbol.save()
-    except Exception as e:
-        print(colored.red("At process commissions {}".format(e)))
+    except Exception as err:
+        print(colored.red("At process commissions {}".format(err)))
         symbol.commission = None
         symbol.save()
     if settings.SHOW_DEBUG:
@@ -571,24 +572,29 @@ async def process_symbols_to_postgress(row):
     try:
         if settings.SHOW_DEBUG:
             print(row)
-        ignored = ['AI50']
-        if not (any(s in row[6] for s in ignored)):
-            symbol = Symbols.objects.get(symbol=row[6])
-            broker = Brokers.objects.get(title=row[10])
 
-            symbol.description = row[7]
-            symbol.spread = row[0]
-            symbol.tick_size = row[1]
-            symbol.tick_value = row[2]
-            symbol.digits = row[3]
-            symbol.currency = row[4]
-            symbol.price = row[9]
-            symbol.profit_type = row[5]
-            symbol.margin_initial = row[8]
-            symbol.broker = broker
-            symbol.save()
-            if settings.SHOW_DEBUG:
-                print("Updated Postgres symbol data for {}\n".format(row[6]))
+        if not (any(s in row[6] for s in ignored_symbols)):
+            symbol = None
+            try:
+                symbol = Symbols.objects.get(symbol=row[6])
+            except:
+                pass
+            if not symbol is None:
+                broker = Brokers.objects.get(title=row[10])
+
+                symbol.description = row[7]
+                symbol.spread = row[0]
+                symbol.tick_size = row[1]
+                symbol.tick_value = row[2]
+                symbol.digits = row[3]
+                symbol.currency = row[4]
+                symbol.price = row[9]
+                symbol.profit_type = row[5]
+                symbol.margin_initial = row[8]
+                symbol.broker = broker
+                symbol.save()
+                if settings.SHOW_DEBUG:
+                    print("Updated Postgres symbol data for {}\n".format(row[6]))
     except Exception as e:
         print(colored.red("At process_symbols_to_postgress symbols {0} with {1}".format(e, row)))
 

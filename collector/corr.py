@@ -1,8 +1,9 @@
 from os.path import join
 from itertools import combinations
-from datetime import datetime
+from datetime import datetime, date
 from asyncio import gather
 
+from numpy import corrcoef
 from pandas import concat, DataFrame, date_range
 from clint.textui import colored
 
@@ -10,6 +11,8 @@ from django.conf import settings
 
 from .models import Corr, Symbols
 from .utils import multi_filenames, nonasy_df_multi_reader
+
+ignored_symbols = ['AI50']
 
 
 async def write_corr(symbol_a, symbol_b, corr):

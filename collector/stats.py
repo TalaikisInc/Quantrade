@@ -2,9 +2,10 @@ from asyncio import gather
 from os.path import join
 
 from clint.textui import colored
-from numpy import power, where, maximum, sum, corrcoef, empty, exp, log, round
+from numpy import where, maximum, sum, empty, exp, log, round, sqrt
 
 from django.conf import settings
+from django.db import IntegrityError
 
 from .models import Stats, Brokers, Symbols, Periods, Systems
 from .utils import multi_filenames, df_multi_reader, name_deconstructor, file_cleaner
@@ -281,7 +282,7 @@ async def write_stats(stats, broker, symbol, period, system, direction):
                 await update_stats(broker=broker, symbol=symbol, period=period, \
                     system=system, direction=direction, stats=stats)
     except Exception as err:
-        print(colore.red("At writing stats {}".format(err)))
+        print(colored.red("At writing stats {}".format(err)))
 
 
 async def stats_process(df, d, years, broker, symbol, period, system):
@@ -304,7 +305,11 @@ async def loop_over_strats(path_to, filename, loop):
         info = name_deconstructor(filename=filename, t="s")
         file_name = join(path_to, info["filename"])
 
-        symbol = Symbols.objects.get(symbol=info["symbol"])
+        symbol = None
+        try:
+            symbol = Symbols.objects.get(symbol=info["symbol"])
+        except:
+            pass
         period = Periods.objects.get(period=info["period"])
         try:
             if settings.SHOW_DEBUG:
@@ -313,7 +318,7 @@ async def loop_over_strats(path_to, filename, loop):
         except:
             system = None
 
-        if system:
+        if (not system is None) & (not symbol is None):
             broker = Brokers.objects.get(title=info["broker"])
             df = await df_multi_reader(filename=file_name)
 
@@ -343,7 +348,6 @@ async def generate_qindexd_stats(broker):
 
         filename = join(settings.DATA_PATH, 'portfolios', '{}_qndx'.format(broker.slug))
         df = await df_multi_reader(filename=filename, limit=True)
-        print(df.tail())
 
         years = df.index[-1].year - df.index[0].year + ((12 - df.index[0].month) + df.index[-1].month) / 12.0
 
