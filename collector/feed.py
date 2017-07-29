@@ -9,7 +9,7 @@ from django.urls import reverse
 from django.utils.html import strip_tags
 from django.conf import settings
 
-from .models import (Signals, QtraUser, Post)
+from .models import Signals, Post
 
 
 def title_generator(item):
@@ -46,8 +46,7 @@ class LatestSignalsFeed(Feed):
         portfolios.'.format(settings.FEED_DAYS_TO_SHOW)
 
     def items(self):
-        user = QtraUser.objects.get(username=settings.MACHINE_USERNAME)
-        signals = Signals.objects.filter(user=user, date_time__gte=(datetime.now() - \
+        signals = Signals.objects.filter(date_time__gte=(datetime.now() - \
             timedelta(days=settings.FEED_DAYS_TO_SHOW))).exclude(returns__isnull=True, \
             returns__iexact=None).order_by('date_time').reverse()
         return signals

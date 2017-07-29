@@ -43,6 +43,35 @@ async def init_calcs(df, symbol):
     return df
 
 
+def nonasy_init_calcs(df, symbol):
+    """
+    Non-async initial calculator, used by Monte Carlo.
+    """
+    try:
+        if symbol == 'VXX':
+            d = df['CLOSE'].diff()
+            d_pct = df['CLOSE'].pct_change()
+            df['tmp'] = where(d < 20.0, d, 0.0)
+            df['tmp_pct'] = where(d_pct < 100.0, d_pct, 0.0)
+            df['DIFF'] = df['tmp']
+            df['PCT'] = df['tmp_pct']
+            del df['tmp']
+            del df['tmp_pct']
+        else:
+            df['DIFF'] = df['CLOSE'].diff()
+            df['PCT'] = df['CLOSE'].pct_change()
+
+        df['cl'] = abs(df['CLOSE'] - df['LOW'])
+        df['hc'] = abs(df['HIGH'] - df['CLOSE'])
+
+        #cleanuup
+        df = df.dropna()
+    except Exception as err:
+        print(colored.red("At init_calcs {}".format(err)))
+    
+    return df
+
+
 async def symbol_cleaner(symbol, broker):
     try:
         s = Symbols.objects.filter(symbol=symbol, broker__title=broker).delete()
@@ -341,7 +370,6 @@ def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
     """
     path_to = join(settings.DATA_PATH, "systems")
     if mc:
-        #filenames = filenames[batch*batch_size:(batch+1)*batch_size-1]
         path_to = join(settings.DATA_PATH, "monte_carlo", "systems")
 
     loop.run_until_complete(gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
@@ -387,9 +415,8 @@ class SignalBase(ExportedSystems):
             self.info["indicator"] = self.indicator
             self.info["system"] = self.name
 
-            file_name = filename_constructor(info=self.info, folder="indicators")
+            file_name = filename_constructor(info=self.info, folder="indicators", mc=self.mc)
             df = nonasy_df_multi_reader(filename=file_name)
-
             await self.signals(df=df, file_name=file_name)
 
     async def insert(self, df, file_name):

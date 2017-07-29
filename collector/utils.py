@@ -37,6 +37,10 @@ def filename_constructor(info: dict, folder: str, mc: bool=False) -> str:
     assert isinstance(mc, bool)
 
     if mc:
+        if folder == "mc":
+            filename = join(settings.STATIC_ROOT, "collector", "images", "mc", \
+                "{0}=={1}=={2}=={3}=={4}.png".format(info["broker"], info["symbol"], \
+                info["period"], info["system"], info["direction"]))
         if folder == "indicators":
             filename = join(settings.DATA_PATH, "monte_carlo", folder, \
                 "{0}=={1}=={2}=={3}=={4}".format(info["broker"], \
@@ -67,10 +71,6 @@ def filename_constructor(info: dict, folder: str, mc: bool=False) -> str:
             filename = join(settings.DATA_PATH, "monte_carlo", "avg", "{0}=={1}=={2}=={3}=={4}".\
                 format(info["broker"], info["symbol"], info["period"], \
                 info["system"], info["direction"]))
-        if folder == "mc":
-            filename = join(settings.STATIC_ROOT, "collector", "images", "mc", \
-                "{0}=={1}=={2}=={3}=={4}.png".format(info["broker"], \
-                info["symbol"], info["period"], info["system"], info["direction"]))
         if folder == "meta":
             filename = join(settings.STATIC_ROOT, "collector", "images", "meta", \
                 "{0}=={1}=={2}=={3}=={4}.png".format(info["broker"], info["symbol"], \

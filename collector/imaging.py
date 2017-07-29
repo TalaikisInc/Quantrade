@@ -312,17 +312,22 @@ async def image_to_db(path_to, s):
 
         f = "{0}=={1}=={2}=={3}=={4}.png".format(s.broker.slug, s.symbol.symbol, s.period.period, s.system.title, dir_slug)
         if isfile(join(path_to, 'meta', f)):
-            filename = "https://quantrade.co.uk/{0}meta/{1}=={2}=={3}=={4}=={5}.png".format(partial_path, s.broker.slug, s.symbol.symbol, s.period.period, s.system.title, dir_slug)
+            filename = "https://quantrade.co.uk/{0}meta/{1}".format(partial_path, f)
             s.img = filename
             if settings.SHOW_DEBUG:
                 print(colored.green("Wrote images urls to db for {}".format(filename)))
         if isfile(join(path_to, 'heatmap', f)):
-            filename = "https://quantrade.co.uk/{0}heatmap/{1}=={2}=={3}=={4}=={5}.png".format(partial_path, s.broker.slug, s.symbol.symbol, s.period.period, s.system.title, dir_slug)
+            filename = "https://quantrade.co.uk/{0}heatmap/{1}".format(partial_path, f)
             s.heatmap = filename
             if settings.SHOW_DEBUG:
                 print(colored.green("Wrote images urls to db for {}".format(filename)))
         if isfile(join(path_to, 'yearly', f)):
-            filename = "https://quantrade.co.uk/{0}yearly/{1}=={2}=={3}=={4}=={5}.png".format(partial_path, s.broker.slug, s.symbol.symbol, s.period.period, s.system.title, dir_slug)
+            filename = "https://quantrade.co.uk/{0}yearly/{1}".format(partial_path, f)
+            s.yearly_ret = filename
+            if settings.SHOW_DEBUG:
+                print(colored.green("Wrote images urls to db for {}".format(filename)))
+        if isfile(join(path_to, 'mc', f)):
+            filename = "https://quantrade.co.uk/{0}mc/{1}".format(partial_path, f)
             s.yearly_ret = filename
             if settings.SHOW_DEBUG:
                 print(colored.green("Wrote images urls to db for {}".format(filename)))

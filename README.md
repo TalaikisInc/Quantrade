@@ -30,9 +30,6 @@ after deciding how it will or should look when operable, and most importantly, -
 * It needs both MySQL (receiving symbol data from MT4) and Postgres (everything else) servers.
 * Python 3.6+, Nginx, Redis, aio or cherry or uWsgi (original).
 
-Monte Carlo with 100 paths and above mentioned count of broekrs and strategies requires minimum of 600 Gb disk, 
-possibly without inode limit (1.5 million of files for intermediary folder).
-
 ## Technologies
 
 * [Python](https://github.com/python/cpython) 3.6+

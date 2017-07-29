@@ -270,10 +270,13 @@ def data_checker(loop):
 
 
 def clean_folder(path_to):
-    filenames = multi_filenames(path_to_history=path_to)
+    try:
+        filenames = multi_filenames(path_to_history=path_to)
 
-    for filename in filenames:
-        remove(join(path_to, filename))
+        for filename in filenames:
+            remove(join(path_to, filename))
+    except Exception as err:
+        print(colored.red("clean_folder {}".format(err)))
 
 
 def error_email(e):
