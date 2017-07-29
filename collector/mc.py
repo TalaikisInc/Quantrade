@@ -23,8 +23,42 @@ from .tasks import clean_folder
 PandasDF = TypeVar('pandas.core.frame.DataFrame')
 
 
+def cycle(loop):
+    try:
+        print("Indicators...")
+        path_to = join(settings.DATA_PATH, "monte_carlo")
+        filenames = multi_filenames(path_to_history=path_to)
+        mc_trader(loop=loop, filenames=filenames, t="i")
+
+        print("Strategies...")
+        path_to_iindicators = join(settings.DATA_PATH, "monte_carlo", "indicators")
+        mc_trader(loop=loop, filenames=filenames, t="s")
+
+        print("Performance...")
+        path_to_systems = join(settings.DATA_PATH, 'monte_carlo', 'systems')
+        filenames = multi_filenames(path_to_history=path_to_systems)
+        mc_trader(loop=loop, filenames=filenames, t="p")
+
+        print("Finalizing...")
+        path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
+        filenames = multi_filenames(path_to_history=path_to_performance)
+        mc_trader(loop=loop, filenames=filenames, t="a")
+    except Exception as err:
+        print(colored.red("mc_maker cycle {}".format(err)))
+
+
 def mc_maker(loop, filename):
     try:
+        print("Cleaning...")
+        path_to = join(settings.DATA_PATH, "monte_carlo")
+        clean_folder(path_to=path_to)
+        path_to_iindicators = join(settings.DATA_PATH, "monte_carlo", "indicators")
+        clean_folder(path_to=path_to_iindicators)
+        path_to_systems = join(settings.DATA_PATH, 'monte_carlo', 'systems')
+        clean_folder(path_to=path_to_systems)
+        path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
+        clean_folder(path_to=path_to_performance)
+
         print("Working with {}".format(filename))
         seed_size = 3000
 
@@ -53,30 +87,7 @@ def mc_maker(loop, filename):
                 final = nonasy_init_calcs(df=out_df, symbol=info["symbol"])
                 nonasy_df_multi_writer(df=final, out_filename=out_filename)
 
-        print("Indicators...")
-        path_to = join(settings.DATA_PATH, "monte_carlo")
-        filenames = multi_filenames(path_to_history=path_to)
-        mc_trader(loop=loop, filenames=filenames, t="i")
-
-        print("Strategies...")
-        path_to_iindicators = join(settings.DATA_PATH, "monte_carlo", "indicators")
-        mc_trader(loop=loop, filenames=filenames, t="s")
-
-        print("Performance...")
-        path_to_systems = join(settings.DATA_PATH, 'monte_carlo', 'systems')
-        filenames = multi_filenames(path_to_history=path_to_systems)
-        mc_trader(loop=loop, filenames=filenames, t="p")
-
-        print("Finalizing...")
-        path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
-        filenames = multi_filenames(path_to_history=path_to_performance)
-        mc_trader(loop=loop, filenames=filenames, t="a")
-
-        print("Cleaning...")
-        clean_folder(path_to=path_to)
-        clean_folder(path_to=path_to_iindicators)
-        clean_folder(path_to=path_to_systems)
-        clean_folder(path_to=path_to_performance)
+        cycle(loop=loop)
 
     except Exception as err:
         print(colored.red(" At mc_maker {}".format(err)))
@@ -199,10 +210,10 @@ def aggregate(loop, filenames):
 
 def mc_trader(loop, filenames, t):
     if t == "i":
-        indicator_processor(mc=True, filenames=filenames)
+        indicator_processor(filenames=filenames, mc=True)
     if t == "s":
-        strategy_processor(mc=True, filenames=filenames)
+        strategy_processor(filenames=filenames, mc=True)
     if t == "p":
-        generate_performance(loop=loop, mc=True, filenames=filenames)
+        generate_performance(loop=loop, filenames=filenames, mc=True)
     if t == "a":
         aggregate(loop=loop, filenames=filenames)

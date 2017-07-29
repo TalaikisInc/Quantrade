@@ -291,7 +291,7 @@ async def clean(info: dict, mc: bool=False) -> None:
             print(colored.red("clean {}".format(err)))
 
 
-async def perf_point(filename, path_to, mc):
+async def perf_point(filename, path_to, mc=False):
     try:
         info = name_deconstructor(filename=filename, t="s", mc=mc)
         
@@ -364,16 +364,17 @@ async def perf_point(filename, path_to, mc):
         print(colored.red("At generating performance {}".format(err)))
 
 
-def generate_performance(loop, filenames, mc=False, batch=0, batch_size=100):
+def generate_performance(loop, filenames, mc=False):
     """
     Generates performance numbers from systems.
     """
-    path_to = join(settings.DATA_PATH, "systems")
     if mc:
         path_to = join(settings.DATA_PATH, "monte_carlo", "systems")
+    else:
+        path_to = join(settings.DATA_PATH, "systems")
 
     loop.run_until_complete(gather(*[perf_point(filename=filename, path_to=path_to, mc=mc) \
-        for filename in filenames if 'M1' not in filename], return_exceptions=True
+        for filename in filenames if 'AI50' not in filename], return_exceptions=True
     ))
 
 

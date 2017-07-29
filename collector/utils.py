@@ -129,7 +129,6 @@ def name_deconstructor(filename: str, t: str, mc: bool=False) -> dict:
         print(colored.red("name_deconstructor {}".format(err)))
 
 
-@lru_cache(maxsize=None)
 def multi_filenames(path_to_history: str, csv: bool=False) -> List[str]:
     filenames = []
     try:

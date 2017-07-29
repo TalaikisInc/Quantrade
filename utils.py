@@ -2,7 +2,7 @@ from asyncio import set_event_loop_policy, get_event_loop
 from argparse import ArgumentParser
 from time import time
 from os import environ, name
-from os.path import join
+from os.path import join, isfile
 
 if not name is 'nt':
     import uvloop
@@ -159,35 +159,7 @@ def main():
         create_symbols(loop=loop)
 
     if args.mc:
-        batch_size = 1000
-        """
         mc(loop=loop)
-
-        path_to = join(settings.DATA_PATH, "monte_carlo")
-        filenames = multi_filenames(path_to_history=path_to)
-        batches = int(len(filenames)/batch_size)+2
-        for b in range(batches):
-            mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="i")
-
-        path_to = join(settings.DATA_PATH, "monte_carlo")
-        filenames = multi_filenames(path_to_history=path_to)
-        batches = int(len(filenames)/batch_size)+2
-        for b in range(batches):
-            mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="s")
-        path_to = join(settings.DATA_PATH, 'monte_carlo', 'systems')
-        filenames = multi_filenames(path_to_history=path_to)
-        batches = int(len(filenames)/batch_size)+2
-        print("Batches from systems to performance: {}".format(batches))
-        for b in range(batches):
-            print("Batch: {}".format(b))
-            mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="p")
-        """
-        path_to = "/mnt/d/performance"
-        #join(settings.DATA_PATH, "monte_carlo", "performance")
-        filenames = multi_filenames(path_to_history=path_to)
-        batches = int(len(filenames)/batch_size)+2
-        for b in range(batches):
-            mc_trader(loop=loop, batch=b, batch_size=batch_size, filenames=filenames, t="a")
 
     loop.close()
 
