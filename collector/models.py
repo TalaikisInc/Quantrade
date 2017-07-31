@@ -263,6 +263,16 @@ class GARCH(models.Model):
         unique_together = (("broker", "symbol", "period", "date_time"),)
         index_together = [["broker", "symbol", "period", "date_time"],]
 
+class MCJobs(models.Model):
+    filename = models.CharField(max_length=255, verbose_name=T("Filename"), primary_key=True)
+    status = models.BooleanField(default=False)
+
+    def __unicode__(self):
+        return '%s' %(self.filename)
+
+    def __str__(self):
+        return '%s' %(self.filename)
+
 
 class Signals(models.Model):
     id = models.BigAutoField(primary_key=True)

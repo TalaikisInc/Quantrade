@@ -17,13 +17,14 @@ from .utils import ext_drop, filename_constructor, name_deconstructor, multi_fil
     nonasy_df_multi_writer, nonasy_df_multi_reader, df_multi_writer
 from .arctic_utils import nonasy_init_calcs, generate_performance
 from _private.strategies_list import indicator_processor, strategy_processor
-from .models import Stats
+from .models import Stats, MCJobs
 from .tasks import clean_folder
 
 PandasDF = TypeVar('pandas.core.frame.DataFrame')
 
+#TODO it works even if stats matching query doesn;t exist, should check at start
 
-def cycle(loop):
+def cycle(loop, job):
     try:
         print("Indicators...")
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -43,11 +44,16 @@ def cycle(loop):
         path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
         filenames = multi_filenames(path_to_history=path_to_performance)
         mc_trader(loop=loop, filenames=filenames, t="a")
+
+        print("Updating status...")
+        job.status = 1
+        job.save()
+
     except Exception as err:
         print(colored.red("mc_maker cycle {}".format(err)))
 
 
-def mc_maker(loop, filename):
+def mc_maker(loop, job):
     try:
         print("Cleaning...")
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -59,10 +65,10 @@ def mc_maker(loop, filename):
         path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
         clean_folder(path_to=path_to_performance)
 
-        print("Working with {}".format(filename))
+        print("Working with {}".format(job.filename))
         seed_size = 3000
 
-        info = name_deconstructor(filename=filename, t="")
+        info = name_deconstructor(filename=job.filename, t="")
 
         file_name = join(settings.DATA_PATH, "incoming_pickled", info["filename"])
         df = nonasy_df_multi_reader(filename=file_name)
@@ -87,7 +93,7 @@ def mc_maker(loop, filename):
                 final = nonasy_init_calcs(df=out_df, symbol=info["symbol"])
                 nonasy_df_multi_writer(df=final, out_filename=out_filename)
 
-        cycle(loop=loop)
+        cycle(loop=loop, job=job)
 
     except Exception as err:
         print(colored.red(" At mc_maker {}".format(err)))
@@ -97,10 +103,21 @@ def mc(loop):
     """
     First function to start Monte Carlo.
     """
-    filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
+    jobs = MCJobs.objects.filter(status=0)
 
-    for filename in filenames:
-        mc_maker(loop=loop, filename=filename)
+    if jobs.count() == 0:
+        filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
+
+        for filename in filenames:
+            try:
+                j = MCJobs.objects.create(filename=filename)
+                j.save()
+                print(colored.green("Saved MC job to database: {}".format(filename)))
+            except Exception as err:
+                print(colored.red("mc at creating jobs: {}".format(err)))
+    else:   
+        for job in jobs:
+            mc_maker(loop=loop, job=job)
 
 
 async def img_writer(info: dict, pdfm: list, df: PandasDF) -> None:
