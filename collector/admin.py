@@ -12,7 +12,7 @@ from ckeditor.widgets import CKEditorWidget
 
 from collector.models import (QtraUser, Portfolios, Symbols, Brokers, Periods,
     Stats, Contacts, Signals, Indicators, Systems, PortfolioData, PortfolioStrats,
-    Post, Corr, GARCH, Strategy, Indicator)
+    Post, Corr, GARCH, Strategy, Indicator, MCJobs)
 
 
 class PostAdminForm(forms.ModelForm):
@@ -78,3 +78,4 @@ admin.site.register(Indicators)
 admin.site.register(Systems)
 admin.site.register(PortfolioData)
 admin.site.register(PortfolioStrats)
+admin.site.register(MCJobs)

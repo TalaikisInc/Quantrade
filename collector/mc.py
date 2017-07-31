@@ -24,7 +24,7 @@ PandasDF = TypeVar('pandas.core.frame.DataFrame')
 
 #TODO it works even if stats matching query doesn;t exist, should check at start
 
-def cycle(loop, job):
+def cycle(loop):
     try:
         print("Indicators...")
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -44,10 +44,6 @@ def cycle(loop, job):
         path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
         filenames = multi_filenames(path_to_history=path_to_performance)
         mc_trader(loop=loop, filenames=filenames, t="a")
-
-        print("Updating status...")
-        job.status = 1
-        job.save()
 
     except Exception as err:
         print(colored.red("mc_maker cycle {}".format(err)))
@@ -93,7 +89,7 @@ def mc_maker(loop, job):
                 final = nonasy_init_calcs(df=out_df, symbol=info["symbol"])
                 nonasy_df_multi_writer(df=final, out_filename=out_filename)
 
-        cycle(loop=loop, job=job)
+        cycle(loop=loop)
 
     except Exception as err:
         print(colored.red(" At mc_maker {}".format(err)))
@@ -118,6 +114,9 @@ def mc(loop):
     else:   
         for job in jobs:
             mc_maker(loop=loop, job=job)
+            print("Updating status...")
+            job.status = 1
+            job.save()
 
 
 async def img_writer(info: dict, pdfm: list, df: PandasDF) -> None:
