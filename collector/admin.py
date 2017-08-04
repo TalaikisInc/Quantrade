@@ -59,6 +59,11 @@ class GARCHAdmin(admin.ModelAdmin):
     search_fields = ['broker', 'period', 'symbol', 'change']
 
 
+class MCJobsAdmin(admin.ModelAdmin):
+    list_display = ('filename', 'status', 'direction')
+    list_filter = ['status', 'direction']
+
+
 admin.site.unregister(FlatPage)
 admin.site.register(FlatPage, FlatPageCustom)
 admin.site.register(QtraUser)
@@ -78,4 +83,4 @@ admin.site.register(Indicators)
 admin.site.register(Systems)
 admin.site.register(PortfolioData)
 admin.site.register(PortfolioStrats)
-admin.site.register(MCJobs)
+admin.site.register(MCJobs, MCJobsAdmin)

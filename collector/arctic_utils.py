@@ -303,7 +303,7 @@ async def perf_point(filename, path_to, mc=False):
 
         if (not commission is None) & (not margin is None):
             if commission > 0:
-                df = await df_multi_reader(filename=join(path_to, info["filename"]))
+                df = nonasy_df_multi_reader(filename=join(path_to, info["filename"]))
 
                 if len(df.index) > settings.MIN_TRADES:
                     df.index = to_datetime(df.index).to_pydatetime()
@@ -322,26 +322,28 @@ async def perf_point(filename, path_to, mc=False):
                     df['LONG_PL_CUMSUM'] = df['LONG_PL'].cumsum()
                     df['SHORT_PL_CUMSUM'] = df['SHORT_PL'].cumsum()
 
-                    df['mae'] = await adjustment_bureau(data=df['cl'], symbol_name=info["symbol"], \
-                        broker_name=info["broker"], period_name=info["period"])
-                    df['mfe'] = await adjustment_bureau(data=df['hc'], symbol_name=info["symbol"], \
-                        broker_name=info["broker"], period_name=info["period"])
+                    if not mc:
+                        df['mae'] = await adjustment_bureau(data=df['cl'], symbol_name=info["symbol"], \
+                            broker_name=info["broker"], period_name=info["period"])
+                        df['mfe'] = await adjustment_bureau(data=df['hc'], symbol_name=info["symbol"], \
+                            broker_name=info["broker"], period_name=info["period"])
 
-                    df.rename(columns={'mae': 'MAE', 'mfe': 'MFE'}, inplace=True)
-                    del df['cl']
-                    del df['hc']
+                        df.rename(columns={'mae': 'MAE', 'mfe': 'MFE'}, inplace=True)
+                        del df['cl']
+                        del df['hc']
 
-                    df = await maes(system=info["system"], df=df)
+                        df = await maes(system=info["system"], df=df)
 
                     df['LONG_DIFF_CUMSUM'] = df['DIFF'].cumsum()
                     df['SHORT_DIFF_CUMSUM'] = -df['DIFF'].cumsum()
 
                     df = df.dropna()
 
-                    del df['mae_tmp_long']
-                    del df['mfe_tmp_long']
-                    del df['mae_tmp_short']
-                    del df['mfe_tmp_short']
+                    if not mc:
+                        del df['mae_tmp_long']
+                        del df['mfe_tmp_long']
+                        del df['mae_tmp_short']
+                        del df['mfe_tmp_short']
 
                     if mc:
                         out_filename = filename_constructor(info=info, folder="performance", mc=mc)

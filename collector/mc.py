@@ -1,4 +1,4 @@
-from asyncio import gather
+
 from os.path import join, isfile
 from typing import TypeVar
 
@@ -10,21 +10,23 @@ from clint.textui import colored
 from scipy import stats
 from pandas import DataFrame, concat, read_pickle
 
+from django.db import IntegrityError
 from django.template.defaultfilters import slugify
 from django.conf import settings
 
 from .utils import ext_drop, filename_constructor, name_deconstructor, multi_filenames, \
-    nonasy_df_multi_writer, nonasy_df_multi_reader, df_multi_writer
+    nonasy_df_multi_writer, nonasy_df_multi_reader
 from .arctic_utils import nonasy_init_calcs, generate_performance
 from _private.strategies_list import indicator_processor, strategy_processor
-from .models import Stats, MCJobs
+from .models import Stats, MCJobs, Systems
 from .tasks import clean_folder
 
+strategies = Systems.objects.all()
 PandasDF = TypeVar('pandas.core.frame.DataFrame')
 
-#TODO it works even if stats matching query doesn;t exist, should check at start
+#TODO it works even if stats matching query doesn't exist, should check at start
 
-def cycle(loop):
+def cycle(loop, job):
     try:
         print("Indicators...")
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -41,27 +43,33 @@ def cycle(loop):
         mc_trader(loop=loop, filenames=filenames, t="p")
 
         print("Finalizing...")
-        path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
-        filenames = multi_filenames(path_to_history=path_to_performance)
-        mc_trader(loop=loop, filenames=filenames, t="a")
+        mc_trader(loop=loop, filenames=[], job=job, t="a")
+
+        print("Updating status...")
+        job.status = 1
+        job.save()
 
     except Exception as err:
-        print(colored.red("mc_maker cycle {}".format(err)))
+        print(colored.red("cycle {}".format(err)))
+
+
+def clean():
+    print("Cleaning...")
+    path_to = join(settings.DATA_PATH, "monte_carlo")
+    clean_folder(path_to=path_to)
+    path_to_iindicators = join(settings.DATA_PATH, "monte_carlo", "indicators")
+    clean_folder(path_to=path_to_iindicators)
+    path_to_systems = join(settings.DATA_PATH, 'monte_carlo', 'systems')
+    clean_folder(path_to=path_to_systems)
+    path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
+    clean_folder(path_to=path_to_performance)
 
 
 def mc_maker(loop, job):
     try:
-        print("Cleaning...")
-        path_to = join(settings.DATA_PATH, "monte_carlo")
-        clean_folder(path_to=path_to)
-        path_to_iindicators = join(settings.DATA_PATH, "monte_carlo", "indicators")
-        clean_folder(path_to=path_to_iindicators)
-        path_to_systems = join(settings.DATA_PATH, 'monte_carlo', 'systems')
-        clean_folder(path_to=path_to_systems)
-        path_to_performance = join(settings.DATA_PATH, "monte_carlo", "performance")
-        clean_folder(path_to=path_to_performance)
+        clean()
 
-        print("Working with {}".format(job.filename))
+        print("Working with {0} {1}".format(job.filename, job.direction))
         seed_size = 3000
 
         info = name_deconstructor(filename=job.filename, t="")
@@ -89,7 +97,7 @@ def mc_maker(loop, job):
                 final = nonasy_init_calcs(df=out_df, symbol=info["symbol"])
                 nonasy_df_multi_writer(df=final, out_filename=out_filename)
 
-        cycle(loop=loop)
+        cycle(loop=loop, job=job)
 
     except Exception as err:
         print(colored.red(" At mc_maker {}".format(err)))
@@ -99,27 +107,45 @@ def mc(loop):
     """
     First function to start Monte Carlo.
     """
+    #j = MCJobs.objects.filter().delete()
     jobs = MCJobs.objects.filter(status=0)
 
     if jobs.count() == 0:
         filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
+        directions = [0, 1, 2]
 
         for filename in filenames:
             try:
-                j = MCJobs.objects.create(filename=filename)
-                j.save()
-                print(colored.green("Saved MC job to database: {}".format(filename)))
+                for direction in directions:
+                    j = MCJobs.objects.create(filename=filename, direction=direction)
+                    j.save()
+                    print(colored.green("Saved MC job to database: {}".format(filename)))
+            except IntegrityError:
+                pass
             except Exception as err:
                 print(colored.red("mc at creating jobs: {}".format(err)))
-    else:   
+    else:
         for job in jobs:
-            mc_maker(loop=loop, job=job)
-            print("Updating status...")
-            job.status = 1
-            job.save()
+            info = name_deconstructor(filename=job.filename, t="")
+            broker = slugify(info["broker"]).replace("-", "_")
+            if job.direction == 1:
+                direction = "longs"
+            elif job.direction == 2:
+                direction = "shorts"
+            else:
+                direction = "longs_shorts"
+            f = "{0}=={1}={2}=={3}=={4}.mp".format(broker, info["symbol"], info["period"], 
+                info["system"], direction)
+
+            #TODO change to allow rewrite if older than x days
+            if not isfile(join(settings.DATA_PATH, "monte_carlo", "avg", f)):
+                mc_maker(loop=loop, job=job)
+            else:
+                job.status = 1
+                job.save()
 
 
-async def img_writer(info: dict, pdfm: list, df: PandasDF) -> None:
+def img_writer(info: dict, pdfm: list, df: PandasDF, job) -> None:
     try:
         out_image = filename_constructor(info=info, folder="mc", mc=True)
 
@@ -129,18 +155,11 @@ async def img_writer(info: dict, pdfm: list, df: PandasDF) -> None:
         plt.savefig(out_image)
         plt.close()
 
-        img = "{0}==_{1}=={2}=={3}=={4}.png".format(info["broker"], info["symbol"], \
+        img = "{0}=={1}=={2}=={3}=={4}.png".format(info["broker"], info["symbol"], \
             info["period"], info["system"], info["direction"])
 
-        if info["direction"] == "longs":
-            info["direction"] = 1
-        if info["direction"] == "shorts":
-            info["direction"] = 2
-        if info["direction"] == "longs_shorts":
-            info["direction"] = 0
-
         stats = Stats.objects.get(broker__slug=info["broker"], symbol__symbol=info["symbol"], \
-            period__period=info["period"], system__title=info["system"], direction=info["direction"])
+            period__period=info["period"], system__title=info["system"], direction=job.direction)
         stats.mc = "https://quantrade.co.uk/static/collector/images/mc/" + img
         stats.save()
         print(colored.green("Image saved {}.".format(img)))
@@ -148,83 +167,61 @@ async def img_writer(info: dict, pdfm: list, df: PandasDF) -> None:
         print(colored.red("img_writer {}".format(err)))
 
 
-async def path_writer(info: dict) -> None:
+def aggregate(loop, job):
     try:
-        pdfm = []
-        for path in range(100):
-            try:
-                info["path"] = path
-                file_name = filename_constructor(info=info, folder="performance", mc=True)
+        info = name_deconstructor(filename=job.filename, t="")
 
-                pdf = nonasy_df_multi_reader(filename=file_name).reset_index()
+        for s in strategies:
+            info["system"] = s.title
 
-                if len(pdf.index) > 0:
-                    del pdf["index"]
-                    if info["direction"] == "longs":
-                        pdfm.append(pdf['LONG_PL_CUMSUM'])
-                    elif info["direction"] == "shorts":
-                        pdfm.append(pdf['SHORT_PL_CUMSUM'])
-                    else:
-                        pdfm.append(pdf['LONG_PL_CUMSUM']+pdf['SHORT_PL_CUMSUM'])
-            except Exception as err:
-                print(colored.red("path_writer for path {}".format(err)))
+            if job.direction == 1:
+                info["direction"] = "longs"
+            elif job.direction == 2:
+                info["direction"] = "shorts"
+            else:
+                info["direction"] = "longs_shorts"
 
-        if len(pdfm) > 20:
-            d = concat([d for d in pdfm], axis=1)
-            d.columns = [info["symbol"]+" "+info["period"]+" "+info["system"]] * len(d.columns)
+            print("Job info")
+            print(info)
 
-            df = d.groupby(d.columns, axis=1).sum() / len(d.columns)
+            pdfm = []
+            for path in range(100):
+                try:
+                    info["path"] = path
+                    info["broker"] = info["filename"].split("==")[0]
 
-            info["broker"] = slugify(info["broker"]).replace("-", "_")
-            out_filename = filename_constructor(info=info, folder="avg")
+                    file_name = filename_constructor(info=info, folder="performance", mc=True)
+                    pdf = nonasy_df_multi_reader(filename=file_name).reset_index()
 
-            await df_multi_writer(df=df, out_filename=out_filename)
-            print(colored.green("Average saved: {}".format(out_filename)))
+                    if len(pdf.index) > 0:
+                        del pdf["index"]
+                        if info["direction"] == "longs":
+                            pdfm.append(pdf['LONG_PL_CUMSUM'])
+                        elif info["direction"] == "shorts":
+                            pdfm.append(pdf['SHORT_PL_CUMSUM'])
+                        else:
+                            pdfm.append(pdf['LONG_PL_CUMSUM']+pdf['SHORT_PL_CUMSUM'])
+                except Exception as err:
+                    print(colored.red("path_writer for path {}".format(err)))
 
-            await img_writer(info=info, pdfm=pdfm, df=df)
+            if len(pdfm) > 20:
+                d = concat([d for d in pdfm], axis=1)
+                d.columns = [info["symbol"]+" "+info["period"]+" "+info["system"]] * len(d.columns)
+
+                df = d.groupby(d.columns, axis=1).sum() / len(d.columns)
+
+                info["broker"] = slugify(info["broker"]).replace("-", "_")
+                out_filename = filename_constructor(info=info, folder="avg")
+
+                nonasy_df_multi_writer(df=df, out_filename=out_filename)
+                print(colored.green("Average saved: {}".format(out_filename)))
+
+                img_writer(info=info, pdfm=pdfm, df=df, job=job)
     except Exception as err:
         print(colored.red("path_writer {}".format(err)))
 
 
-def unique_strats(filenames):
-    unique_filenames = []
-        
-    for filename in filenames:
-        filename = ext_drop(filename=filename)
-        spl = filename.split("==")
-        unique_filenames.append(spl)
-
-    df = DataFrame(unique_filenames)
-    df.columns = ["BROKER", "SYMBOL", "PERIOD", "SYSTEM", "PATH"]
-    del df["PATH"]
-
-    return df.drop_duplicates().reset_index()
-
-
-async def mc_agg_point(udf, s):
-    try:
-        info = {}
-        info["broker"] = udf.ix[s]["BROKER"]
-        info["symbol"] = udf.ix[s]["SYMBOL"]
-        info["period"] = udf.ix[s]["PERIOD"]
-        info["system"] = udf.ix[s]["SYSTEM"]
-
-        directions = ["longs", "shorts", "longs_shorts"]
-        for direction in directions:
-            info["direction"] = direction
-            await path_writer(info=info)
-    except Exception as err:
-        print(colored.red("mc_agg_point {}".format(err)))
-
-
-def aggregate(loop, filenames):
-    udf = unique_strats(filenames=filenames)
-
-    loop.run_until_complete(gather(*[mc_agg_point(udf=udf, s=s) for \
-        s in range(len(udf.index))], return_exceptions=True))
-
-
-def mc_trader(loop, filenames, t):
+def mc_trader(loop, filenames, t, job=None):
     if t == "i":
         indicator_processor(filenames=filenames, mc=True)
     if t == "s":
@@ -232,4 +229,4 @@ def mc_trader(loop, filenames, t):
     if t == "p":
         generate_performance(loop=loop, filenames=filenames, mc=True)
     if t == "a":
-        aggregate(loop=loop, filenames=filenames)
+        aggregate(loop=loop, job=job)

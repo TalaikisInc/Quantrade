@@ -263,8 +263,11 @@ class GARCH(models.Model):
         unique_together = (("broker", "symbol", "period", "date_time"),)
         index_together = [["broker", "symbol", "period", "date_time"],]
 
+
 class MCJobs(models.Model):
-    filename = models.CharField(max_length=255, verbose_name=T("Filename"), primary_key=True)
+    id = models.BigAutoField(primary_key=True)
+    filename = models.CharField(max_length=255, verbose_name=T("Filename"))
+    direction = models.SmallIntegerField(choices=settings.DIRECTIONS, default=1, verbose_name=T("Direction"))
     status = models.BooleanField(default=False)
 
     def __unicode__(self):
@@ -272,6 +275,10 @@ class MCJobs(models.Model):
 
     def __str__(self):
         return '%s' %(self.filename)
+    
+    class Meta:
+        unique_together = (("filename", "direction"),)
+        index_together = [["filename", "direction"],]
 
 
 class Signals(models.Model):
@@ -414,3 +421,4 @@ class Stats(models.Model):
     class Meta:
         unique_together = ["broker", "symbol", "period", "system", "direction"]
         index_together = ["broker", "symbol", "period", "system", "direction"]
+
