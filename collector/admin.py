@@ -62,6 +62,7 @@ class GARCHAdmin(admin.ModelAdmin):
 class MCJobsAdmin(admin.ModelAdmin):
     list_display = ('filename', 'status', 'direction')
     list_filter = ['status', 'direction']
+    search_fields = ['filename', 'direction']
 
 
 admin.site.unregister(FlatPage)

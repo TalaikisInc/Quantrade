@@ -26,7 +26,7 @@ PandasDF = TypeVar('pandas.core.frame.DataFrame')
 
 #TODO it works even if stats matching query doesn't exist, should check at start
 
-def cycle(loop, job):
+def cycle(loop):
     try:
         print("Indicators...")
         path_to = join(settings.DATA_PATH, "monte_carlo")
@@ -41,13 +41,6 @@ def cycle(loop, job):
         path_to_systems = join(settings.DATA_PATH, 'monte_carlo', 'systems')
         filenames = multi_filenames(path_to_history=path_to_systems)
         mc_trader(loop=loop, filenames=filenames, t="p")
-
-        print("Finalizing...")
-        mc_trader(loop=loop, filenames=[], job=job, t="a")
-
-        print("Updating status...")
-        job.status = 1
-        job.save()
 
     except Exception as err:
         print(colored.red("cycle {}".format(err)))
@@ -69,7 +62,7 @@ def mc_maker(loop, job):
     try:
         clean()
 
-        print("Working with {0} {1}".format(job.filename, job.direction))
+        print("Working with {0}".format(job.filename))
         seed_size = 3000
 
         info = name_deconstructor(filename=job.filename, t="")
@@ -97,8 +90,6 @@ def mc_maker(loop, job):
                 final = nonasy_init_calcs(df=out_df, symbol=info["symbol"])
                 nonasy_df_multi_writer(df=final, out_filename=out_filename)
 
-        cycle(loop=loop, job=job)
-
     except Exception as err:
         print(colored.red(" At mc_maker {}".format(err)))
 
@@ -108,7 +99,7 @@ def mc(loop):
     First function to start Monte Carlo.
     """
     #j = MCJobs.objects.filter().delete()
-    jobs = MCJobs.objects.filter(status=0)
+    jobs = MCJobs.objects.filter(status=0, direction=1)
 
     if jobs.count() == 0:
         filenames = multi_filenames(path_to_history=join(settings.DATA_PATH, "incoming_pickled"))
@@ -126,23 +117,23 @@ def mc(loop):
                 print(colored.red("mc at creating jobs: {}".format(err)))
     else:
         for job in jobs:
-            info = name_deconstructor(filename=job.filename, t="")
-            broker = slugify(info["broker"]).replace("-", "_")
-            if job.direction == 1:
-                direction = "longs"
-            elif job.direction == 2:
-                direction = "shorts"
-            else:
-                direction = "longs_shorts"
-            f = "{0}=={1}={2}=={3}=={4}.mp".format(broker, info["symbol"], info["period"], 
-                info["system"], direction)
+            mc_maker(loop=loop, job=job)
+            cycle(loop=loop)
 
-            #TODO change to allow rewrite if older than x days
-            if not isfile(join(settings.DATA_PATH, "monte_carlo", "avg", f)):
-                mc_maker(loop=loop, job=job)
-            else:
-                job.status = 1
-                job.save()
+            directions = [0, 1, 2]
+            for d in directions:
+                info = name_deconstructor(filename=job.filename, t="")
+                try:
+                    j = MCJobs.objects.get(filename=job.filename, direction=d)
+                    
+                    print("Finalizing...")
+                    mc_trader(loop=loop, filenames=[], job=j, t="a")
+
+                    print("Updating status...")
+                    j.status = 1
+                    j.save()
+                except Exception as err:
+                    print("mc j {}".format(err))
 
 
 def img_writer(info: dict, pdfm: list, df: PandasDF, job) -> None:
@@ -180,9 +171,6 @@ def aggregate(loop, job):
                 info["direction"] = "shorts"
             else:
                 info["direction"] = "longs_shorts"
-
-            print("Job info")
-            print(info)
 
             pdfm = []
             for path in range(100):
