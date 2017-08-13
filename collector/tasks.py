@@ -139,15 +139,6 @@ def pickle_to_svc(folder, loop):
         return_exceptions=True))
 
 
-def cumulate_returns(x):
-    try:
-        val = x.cumsum()[-1]
-    except:
-        pass
-        val = 0
-    return val
-
-
 async def expand(records):
     d = [dict(r.items()) for r in records]
     return d

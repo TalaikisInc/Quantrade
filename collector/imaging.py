@@ -95,6 +95,15 @@ def make_images(loop):
         return_exceptions=True))
 
 
+def cumulate_returns(x):
+    try:
+        val = x.cumsum()[-1]
+    except:
+        pass
+        val = 0
+    return val
+
+
 async def aggregate_returns(returns, convert_to):
     if convert_to == 'weekly':
         return returns.groupby(
@@ -114,7 +123,7 @@ async def write_y(returns, image_filename):
         ax = plt.gca()
         ax.yaxis.grid(linestyle=':')
 
-        ret_plt = await aggregate_returns(returns, 'yearly') #* 100.0
+        ret_plt = await aggregate_returns(returns=returns, convert_to='yearly') #* 100.0
         ret_plt.plot(kind="bar")
         ax.set_title('Yearly Returns, %', fontweight='bold')
         ax.set_ylabel('')
@@ -126,7 +135,7 @@ async def write_y(returns, image_filename):
         if settings.SHOW_DEBUG:
             print(colored.green("Wrote yearly graph {}".format(image_filename)))
     except Exception as err:
-        print(colored.red("At write_y".format(err)))
+        print(colored.red("At write_yearly {}".format(err)))
 
 
 async def make_yearly_returns(returns, info):
@@ -237,7 +246,7 @@ async def write_h(image_filename, data):
         if settings.SHOW_DEBUG:
             print(colored.green("Wrote heatmap image for {}\n".format(image_filename)))
     except Exception as err:
-        print(colored.red("At write_h".format(err)))
+        print(colored.red("At write_heatmap {}".format(err)))
 
 
 async def save_heatmap(data, info):
