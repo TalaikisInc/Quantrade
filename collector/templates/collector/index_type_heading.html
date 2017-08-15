@@ -17,15 +17,15 @@
         {% endif %}
 
         {% if is_account_number and is_customer %}
-            {% trans "Welcome" %}, {{ user.username }}
+            <p>{% trans "Welcome" %}, {{ user.username }}</p>
          {% elif is_customer %}
               {% if is_account_number %}
-                  {% trans "Welcome" %}, {{ user.username }}Ųnbsp;
+              <p>{% trans "Welcome" %}, {{ user.username }}&nbsp;</p>
               {% else %}
-                  <a href="{{ base_url}}/broker/"><button type="button" class="btn btn-primary btn-sm">{% trans "STEP 3. Register your account number." %}</button></a>&nbsp;
+              <p><a href="{{ base_url}}/broker/"><button type="button" class="btn btn-primary btn-sm">{% trans "STEP 3. Register your account number." %}</button></a>&nbsp;
               {% endif %}
           {% else %}
-              <a href="{{ base_url }}/brokers/"><button type="button" class="btn btn-danger btn-sm">{% trans "STEP 2. Register for broker account" %}</button></a>&nbsp;
+          <p><a href="{{ base_url }}/brokers/"><button type="button" class="btn btn-danger btn-sm">{% trans "STEP 2. Register for broker account" %}</button></a>&nbsp;
           {% endif %}
     {% else %}
         <!-- <a href="{{ base_url }}/{{ members_area_nae }}/"><button type="button" class="btn btn-primary btn-sm">{% trans "STEP 1. Register to add to portfolio" %}</button></a>&nbsp; -->&nbsp;

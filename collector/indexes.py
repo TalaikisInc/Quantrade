@@ -43,7 +43,7 @@ def generate_qindex(loop):
 
             dates = date_range(end=date(datetime.now().year, datetime.now().month, \
                 datetime.now().day),periods=20*252, freq="D", name="DATE_TIME", tz=None)
-            df = concat(df_out, axis=1)
+            df = concat(df_out, axis=1, join_axes=[dates])
 
             try:
                 df.rename(columns={'SHORT_PL_CUMSUM': 'LONG_PL_CUMSUM',
@@ -54,10 +54,10 @@ def generate_qindex(loop):
                     'SHORT_MARGIN': 'LONG_MARGIN'
                     }, inplace=True)
 
-                df = df.fillna(0.0)
-                df = df.groupby(df.columns, axis=1).sum()
                 df["LONG_PL_CUMSUM"] = df["LONG_PL_CUMSUM"].fillna(method='ffill')
                 df["LONG_MAE"] = df["LONG_MAE"].fillna(method='ffill')
+                df = df.fillna(0.0)
+                df = df.groupby(df.columns, axis=1).sum()
 
                 final = concat([df.DIFF/100.0, df.LONG_MAE/100.0, df.LONG_MARGIN/100.0, \
                     df.LONG_PL/100.0, df.LONG_PL_CUMSUM/100.0, df.LONG_TRADES], axis=1)
