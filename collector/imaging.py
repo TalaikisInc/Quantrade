@@ -123,6 +123,8 @@ async def write_y(returns, image_filename):
         ax = plt.gca()
         ax.yaxis.grid(linestyle=':')
 
+        assert returns is not None
+
         ret_plt = await aggregate_returns(returns=returns, convert_to='yearly') #* 100.0
         ret_plt.plot(kind="bar")
         ax.set_title('Yearly Returns, %', fontweight='bold')
@@ -337,7 +339,7 @@ async def image_to_db(path_to, s):
                 print(colored.green("Wrote images urls to db for {}".format(filename)))
         if isfile(join(path_to, 'mc', f)):
             filename = "https://quantrade.co.uk/{0}mc/{1}".format(partial_path, f)
-            s.yearly_ret = filename
+            s.mc = filename
             if settings.SHOW_DEBUG:
                 print(colored.green("Wrote images urls to db for {}".format(filename)))
 
