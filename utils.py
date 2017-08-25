@@ -86,7 +86,6 @@ def main():
     if args.daily:
         dbsql = mysql_connect_db()
         start_time = time()
-        """
 
         print("Create symbols...")
         create_symbols(loop=loop)
@@ -100,12 +99,10 @@ def main():
         print("Performance...")
         path_to = join(settings.DATA_PATH, 'systems')
         filenames = multi_filenames(path_to_history=path_to)
-        generate_performance(loop=loop, filenames=filenames)
-        """
+        generate_performance(loop=loop, filenames=filenames
 
         print("Generating indexes...")
         generate_qindex(loop=loop)
-        """
 
         print("Generating stats...")
         generate_stats(loop=loop)
@@ -124,7 +121,6 @@ def main():
         print("Processing GARCH...")
         garch(loop=loop)
         garch_to_db(loop=loop)
-        """
 
         print("Daily tasks: %s seconds ---" % (time() - start_time))
 

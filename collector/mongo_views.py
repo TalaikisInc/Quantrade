@@ -193,19 +193,11 @@ def get_weighting_style(w, lots):
 
 def latest_view(request):
     try:
-        logged_user = QtraUser.objects.get(username=settings.MACHINE_USERNAME)
-    except:
-        logged_user = None
-
-    try:
-        if logged_user:
-            signals = Signals.objects.select_related('symbol', 'period', 'system'\
-                'user').filter(user=logged_user).order_by('date_time'\
-                ).values('symbol__symbol', 'period__name', 'system__title', \
-                'direction', 'date_time', 'returns', 'symbol__broker__title', \
-                'period__period', 'broker__slug')
-        else:
-            signals = None
+        signals = Signals.objects.select_related('symbol', 'period', 'system'\
+            'user').filter().order_by('date_time'\
+            ).values('symbol__symbol', 'period__name', 'system__title', \
+            'direction', 'date_time', 'returns', 'symbol__broker__title', \
+            'period__period', 'broker__slug')
 
         return render(request, '{}/latest_signals.html'.format(settings.TEMPLATE_NAME), {'signals': signals })
     except Exception as e:
@@ -681,17 +673,13 @@ def my_performance(request):
             logged_user = None
 
         try:
-            if logged_user:
-                signals = Signals.objects.select_related('symbol', 'period', 'system'\
-                    'user').filter(user=logged_user).order_by('date_time'\
-                    ).reverse().values('symbol__symbol', 'period__name', 'system__title', \
-                    'direction', 'date_time', 'returns', 'symbol__broker__title', \
-                    'period__period', 'broker__slug')
-            else:
-                signals = None
+            signals = Signals.objects.select_related('symbol', 'period', 'system'\
+                'user').filter().order_by('date_time'\
+                ).reverse().values('symbol__symbol', 'period__name', 'system__title', \
+                'direction', 'date_time', 'returns', 'symbol__broker__title', \
+                'period__period', 'broker__slug')
         except:
             signals = None
-            logged_user = None
 
         return render(request, '{}/signals.html'.format(settings.TEMPLATE_NAME), {'signals': signals, 'logged_user': logged_user})
     except Exception as e:
