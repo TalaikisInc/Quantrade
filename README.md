@@ -12,6 +12,8 @@ It uses data server, running Metatrader 4 platforms and processing server that g
 It's a beta, because it was changed many times over those few months, requires code reviews, which will be done
 after deciding how it will or should look when operable, and most importantly, - remaining validation functionality.
 
+Public website does nothing currently, and I am sometimes working on more simplistic to end users approach with much higher trading frequency than this project.
+
 ## TODO
 
 * ~~API~~
