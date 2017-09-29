@@ -128,7 +128,7 @@ It was created as part of Project 10x. Project 10x was started several years ago
 
 * 2016.10-2017.02. At first I thought people would construct their own portfolios of strategies, but after release test, that appeared too complex for users, so
 * 2017.03-2017.04 following version created indexing concept. That simplified things, but still not much.
-* ...
+* 2017.05+ - dropped active development after realizing no one of end-users gets it and decided to explore other concepts.
 
 ## Limitations
 
