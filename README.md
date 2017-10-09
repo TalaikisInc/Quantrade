@@ -5,7 +5,7 @@
 
 ## What it does
 
-It uses data server, running Metatrader 4 platforms and processing server that gets the data via WebDAV, processes it and then displays generated content. It would query, when configured, data server periodically to generate trade signals automatically from created strategies.
+It uses data server, running Metatrader 4 platforms and processing server that gets the data via WebDAV (requires [data_server](https://github.com/xenu256/data_server)), processes it and then displays generated content. It would query, when configured, data server periodically to generate trade signals automatically from created strategies.
 
 ## STATUS
 
