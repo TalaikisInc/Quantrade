@@ -1,7 +1,11 @@
 # Quantrade
 [![Build Status](https://travis-ci.org/xenu256/Quantrade.svg?branch=master)](https://travis-ci.org/xenu256/Quantrade)
 
-[Quantrade](https://quantrade.co.uk) is quantitative strategies portfolio index, generating trade signals from its portfolio.
+[Quantrade](https://quantrade.talaikis.com) is quantitative strategies portfolio index, generating trade signals from its portfolio.
+
+## Status
+
+Deprecated.
 
 ## What it does
 

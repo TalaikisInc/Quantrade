@@ -5,7 +5,7 @@ from os.path import isfile, join
 from subprocess import Popen
 
 from clint.textui import colored
-from pandas import DataFrame, read_msgpack, read_json, read_hdf, read_feather, HDFStore, read_pickle, read_csv
+from pandas import DataFrame, read_msgpack, read_json, read_hdf, read_feather, HDFStore, read_pickle
 
 from django.conf import settings
 

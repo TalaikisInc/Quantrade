@@ -6,7 +6,6 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django import forms
 from django.db import models
-from django import forms
 
 from ckeditor.widgets import CKEditorWidget
 
