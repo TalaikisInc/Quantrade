@@ -5,7 +5,7 @@
 
 ## Status
 
-Deprecated.
+Deprecated. New iteration of this project is [Blue Blood](https://blueblood.ltd/) and its repo can be found [here](https://github.com/BlueBloodLtd/bluealood).
 
 ## What it does
 
